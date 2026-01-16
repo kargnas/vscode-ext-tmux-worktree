@@ -852,7 +852,7 @@ Task 1 → Task 2 → Task 3 → Task 4 → Task 5 → Task 6
   - `tmux show-options -t <session> @workdir`로 메타 확인
   - origin/main 없는 repo에서 테스트 → main 사용 확인
 
-- [ ] 3. Attach/Create (current dir) 로직 구현
+- [x] 3. Attach/Create (current dir) 로직 구현
 
   **What to do**:
   - current dir 정의: 워크스페이스 루트(멀티루트면 활성 폴더)
