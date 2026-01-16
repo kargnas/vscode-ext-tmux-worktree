@@ -13,9 +13,15 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('tmux.newTask', newTask),
     vscode.commands.registerCommand('tmux.removeTask', removeTask),
     vscode.commands.registerCommand('tmux.refresh', () => sessionProvider.refresh()),
-    vscode.commands.registerCommand('tmux.filter', () => {
-      // TODO: 필터 기능 구현
-      vscode.window.showInformationMessage('Filter not implemented yet');
+    vscode.commands.registerCommand('tmux.filter', async () => {
+      const choice = await vscode.window.showQuickPick(
+        ['All', 'Attached', 'Alive', 'Idle', 'Orphans'],
+        { placeHolder: 'Filter sessions by status' }
+      );
+      if (choice) {
+        sessionProvider.setFilter(choice.toLowerCase());
+        sessionProvider.refresh();
+      }
     })
   );
 }
