@@ -3,6 +3,8 @@ import { TmuxSessionProvider } from './providers/tmuxSessionProvider';
 import { attachCreate } from './commands/attachCreate';
 import { newTask } from './commands/newTask';
 import { removeTask } from './commands/removeTask';
+import { cleanupOrphans } from './commands/orphanCleanup';
+import { autoAttachOnStartup } from './commands/autoAttach';
 import {
   attach,
   openWorktree,
@@ -21,7 +23,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('tmux.attachCreate', attachCreate),
     vscode.commands.registerCommand('tmux.newTask', newTask),
-    vscode.commands.registerCommand('tmux.removeTask', removeTask),
+    vscode.commands.registerCommand('tmux.removeTask', (item) => removeTask(item)),
+    vscode.commands.registerCommand('tmux.cleanupOrphans', cleanupOrphans),
     vscode.commands.registerCommand('tmux.refresh', () => sessionProvider.refresh()),
     vscode.commands.registerCommand('tmux.filter', async () => {
       const choice = await vscode.window.showQuickPick(
@@ -42,6 +45,8 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('tmux.runOpencode', runOpencode),
     vscode.commands.registerCommand('tmux.runCustom', runCustom)
   );
+
+  autoAttachOnStartup();
 }
 
 export function deactivate() {}

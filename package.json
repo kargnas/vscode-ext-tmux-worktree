@@ -82,6 +82,11 @@
       {
         "command": "tmux.runCustom",
         "title": "Run: Custom Command..."
+      },
+      {
+        "command": "tmux.cleanupOrphans",
+        "title": "TMUX: Cleanup Orphans",
+        "icon": "$(trash)"
       }
     ],
     "menus": {
@@ -93,6 +98,11 @@
         },
         {
           "command": "tmux.filter",
+          "when": "view == tmuxSessions",
+          "group": "navigation"
+        },
+        {
+          "command": "tmux.cleanupOrphans",
           "when": "view == tmuxSessions",
           "group": "navigation"
         }
