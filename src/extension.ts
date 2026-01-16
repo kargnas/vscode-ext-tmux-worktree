@@ -3,6 +3,16 @@ import { TmuxSessionProvider } from './providers/tmuxSessionProvider';
 import { attachCreate } from './commands/attachCreate';
 import { newTask } from './commands/newTask';
 import { removeTask } from './commands/removeTask';
+import {
+  attach,
+  openWorktree,
+  copyPath,
+  newPane,
+  newWindow,
+  runClaude,
+  runOpencode,
+  runCustom
+} from './commands/contextMenu';
 
 export function activate(context: vscode.ExtensionContext) {
   const sessionProvider = new TmuxSessionProvider();
@@ -22,7 +32,15 @@ export function activate(context: vscode.ExtensionContext) {
         sessionProvider.setFilter(choice.toLowerCase());
         sessionProvider.refresh();
       }
-    })
+    }),
+    vscode.commands.registerCommand('tmux.attach', attach),
+    vscode.commands.registerCommand('tmux.openWorktree', openWorktree),
+    vscode.commands.registerCommand('tmux.copyPath', copyPath),
+    vscode.commands.registerCommand('tmux.newPane', newPane),
+    vscode.commands.registerCommand('tmux.newWindow', newWindow),
+    vscode.commands.registerCommand('tmux.runClaude', runClaude),
+    vscode.commands.registerCommand('tmux.runOpencode', runOpencode),
+    vscode.commands.registerCommand('tmux.runCustom', runCustom)
   );
 }
 

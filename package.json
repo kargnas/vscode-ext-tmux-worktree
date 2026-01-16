@@ -50,6 +50,38 @@
         "command": "tmux.filter",
         "title": "Filter Sessions",
         "icon": "$(filter)"
+      },
+      {
+        "command": "tmux.attach",
+        "title": "Attach"
+      },
+      {
+        "command": "tmux.openWorktree",
+        "title": "Open Worktree in New Window"
+      },
+      {
+        "command": "tmux.copyPath",
+        "title": "Copy Worktree Path"
+      },
+      {
+        "command": "tmux.newPane",
+        "title": "New Pane (Split)"
+      },
+      {
+        "command": "tmux.newWindow",
+        "title": "New Window"
+      },
+      {
+        "command": "tmux.runClaude",
+        "title": "Run: claude"
+      },
+      {
+        "command": "tmux.runOpencode",
+        "title": "Run: opencode"
+      },
+      {
+        "command": "tmux.runCustom",
+        "title": "Run: Custom Command..."
       }
     ],
     "menus": {
@@ -67,12 +99,49 @@
       ],
       "view/item/context": [
         {
-          "command": "tmux.attachCreate",
-          "when": "view == tmuxSessions && viewItem == tmuxSession"
+          "command": "tmux.attach",
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "1_attach"
+        },
+        {
+          "command": "tmux.openWorktree",
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "2_open"
+        },
+        {
+          "command": "tmux.copyPath",
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "2_open"
+        },
+        {
+          "command": "tmux.newPane",
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "3_tmux"
+        },
+        {
+          "command": "tmux.newWindow",
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "3_tmux"
+        },
+        {
+          "command": "tmux.runClaude",
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "4_run"
+        },
+        {
+          "command": "tmux.runOpencode",
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "4_run"
+        },
+        {
+          "command": "tmux.runCustom",
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "4_run"
         },
         {
           "command": "tmux.removeTask",
-          "when": "view == tmuxSessions && viewItem == tmuxSession"
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "5_danger"
         }
       ]
     }
