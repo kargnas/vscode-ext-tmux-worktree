@@ -1,23 +1,88 @@
+import * as vscode from 'vscode';
+import { exec } from './exec';
+
 export interface TmuxSession {
   name: string;
   windows: number;
   attached: boolean;
-  path?: string;
+  workdir?: string;
 }
 
+// tmux 설치 확인
+export async function isTmuxInstalled(): Promise<boolean> {
+  try {
+    await exec('which tmux');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// 세션 목록 조회
 export async function listSessions(): Promise<TmuxSession[]> {
-  // TODO: tmux list-sessions 실행
-  return [];
+  try {
+    const output = await exec("tmux list-sessions -F '#{session_name}:#{session_windows}:#{session_attached}'");
+    return output.split('\n').filter(l => l.trim()).map(line => {
+      const [name, windows, attached] = line.split(':');
+      return {
+        name,
+        windows: parseInt(windows, 10) || 1,
+        attached: attached === '1'
+      };
+    });
+  } catch {
+    // tmux 서버 없음
+    return [];
+  }
 }
 
-export async function createSession(_name: string, _path: string): Promise<void> {
-  // TODO: tmux new-session 실행
+// 세션의 @workdir 조회
+export async function getSessionWorkdir(sessionName: string): Promise<string | undefined> {
+  try {
+    const output = await exec(`tmux show-options -t "${sessionName}" @workdir`);
+    // 출력 형식: "@workdir /abs/path"
+    const parts = output.split(' ');
+    if (parts.length >= 2) {
+      return parts.slice(1).join(' ').trim();
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
 }
 
-export async function attachSession(_name: string): Promise<void> {
-  // TODO: tmux attach-session 실행
+// 세션 생성
+export async function createSession(sessionName: string, cwd: string): Promise<void> {
+  await exec(`tmux new-session -d -s "${sessionName}" -c "${cwd}"`);
 }
 
-export async function killSession(_name: string): Promise<void> {
-  // TODO: tmux kill-session 실행
+// @workdir 설정
+export async function setSessionWorkdir(sessionName: string, workdir: string): Promise<void> {
+  await exec(`tmux set-option -t "${sessionName}" @workdir "${workdir}"`);
+}
+
+// 세션 attach (VS Code 터미널에서)
+export function attachSession(sessionName: string, cwd?: string): vscode.Terminal {
+  const terminalName = `tmux: ${sessionName}`;
+  
+  // 기존 터미널 재사용
+  const existing = vscode.window.terminals.find(t => t.name === terminalName);
+  if (existing) {
+    existing.show();
+    return existing;
+  }
+  
+  // 새 터미널 생성
+  const terminal = vscode.window.createTerminal({
+    name: terminalName,
+    cwd
+  });
+  terminal.sendText(`tmux attach -t "${sessionName}"`);
+  terminal.show();
+  return terminal;
+}
+
+// 세션 종료
+export async function killSession(sessionName: string): Promise<void> {
+  await exec(`tmux kill-session -t "${sessionName}"`);
 }

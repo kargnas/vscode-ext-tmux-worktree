@@ -769,7 +769,7 @@ Task 1 → Task 2 → Task 3 → Task 4 → Task 5 → Task 6
   - Command Palette (Cmd+Shift+P)에서 "TMUX" 검색 → 5개 명령 노출 확인
   - 패널이 닫혀있으면 View → Panel (Cmd+J)로 열고 TMUX 탭 확인
 
-- [ ] 2. tmux 세션/워크트리 생성 흐름 구현 (New Task)
+- [x] 2. tmux 세션/워크트리 생성 흐름 구현 (New Task)
 
   **What to do**:
   - slug 규칙: 소문자/숫자/`-`만 허용, 공백은 `-`로 치환, 길이 32자 제한
