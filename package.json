@@ -1,0 +1,92 @@
+{
+  "name": "vscode-tmux-worktree",
+  "displayName": "TMUX Worktree",
+  "description": "Manage tmux sessions with git worktrees",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "tmux-panel",
+          "title": "TMUX",
+          "icon": "resources/tmux.svg"
+        }
+      ]
+    },
+    "views": {
+      "tmux-panel": [
+        {
+          "id": "tmuxSessions",
+          "name": "Sessions"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "tmux.attachCreate",
+        "title": "TMUX: Attach/Create Session"
+      },
+      {
+        "command": "tmux.newTask",
+        "title": "TMUX: New Task"
+      },
+      {
+        "command": "tmux.removeTask",
+        "title": "TMUX: Remove Task"
+      },
+      {
+        "command": "tmux.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "tmux.filter",
+        "title": "Filter Sessions",
+        "icon": "$(filter)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "tmux.refresh",
+          "when": "view == tmuxSessions",
+          "group": "navigation"
+        },
+        {
+          "command": "tmux.filter",
+          "when": "view == tmuxSessions",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "tmux.attachCreate",
+          "when": "view == tmuxSessions && viewItem == tmuxSession"
+        },
+        {
+          "command": "tmux.removeTask",
+          "when": "view == tmuxSessions && viewItem == tmuxSession"
+        }
+      ]
+    }
+  },
+  "activationEvents": [
+    "onView:tmuxSessions"
+  ],
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0"
+  }
+}

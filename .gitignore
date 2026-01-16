@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+out/
+*.vsix
+
+# System files
+.DS_Store
+
+# Research files (temporary - not part of extension)
+api_ref_list.txt
+terminal_*.txt
+tree_*.txt
+vscode_docs_*.json
+contribution-points.md
+tree-view.md
+views-ux.md
+vscode-api.template
+vscode.d.ts
+vscode.proposed.*.d.ts
