@@ -60,7 +60,7 @@ export async function ensureWorktreesDir(repoRoot: string): Promise<string> {
   return worktreesDir;
 }
 
-// worktree 목록 조회
+// worktree 목록 조회 (prunable 제외)
 export async function listWorktrees(repoRoot: string): Promise<Worktree[]> {
   try {
     const output = await exec('git worktree list --porcelain', { cwd: repoRoot });
@@ -71,16 +71,19 @@ export async function listWorktrees(repoRoot: string): Promise<Worktree[]> {
       const lines = block.split('\n');
       let wtPath = '';
       let branch = '';
+      let isPrunable = false;
       
       for (const line of lines) {
         if (line.startsWith('worktree ')) {
           wtPath = line.substring(9);
         } else if (line.startsWith('branch refs/heads/')) {
           branch = line.substring(18);
+        } else if (line === 'prunable') {
+          isPrunable = true;
         }
       }
       
-      if (wtPath) {
+      if (wtPath && !isPrunable) {
         worktrees.push({
           path: wtPath,
           branch,

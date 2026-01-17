@@ -3,17 +3,35 @@ import * as fs from 'fs';
 import { exec } from '../utils/exec';
 import { killSession } from '../utils/tmux';
 import { getRepoRoot } from '../utils/git';
-import { TmuxSessionItem } from '../providers/tmuxSessionProvider';
+import { TmuxSessionItem, TmuxSessionDetailItem, InactiveWorktreeItem, InactiveWorktreeDetailItem, TmuxItem } from '../providers/tmuxSessionProvider';
+import * as path from 'path';
 
-export async function removeTask(item: TmuxSessionItem): Promise<void> {
+export async function removeTask(item: TmuxItem): Promise<void> {
   if (!item || !item.sessionName) {
     vscode.window.showErrorMessage('No session selected');
     return;
   }
 
   const sessionName = item.sessionName;
-  const worktreePath = item.session.worktreePath;
-  const slug = item.session.slug;
+  
+  let worktreePath: string | undefined;
+  let slug: string;
+  
+  if (item instanceof TmuxSessionItem) {
+    worktreePath = item.session.worktreePath;
+    slug = item.session.slug;
+  } else if (item instanceof TmuxSessionDetailItem) {
+    worktreePath = item.session.worktreePath;
+    slug = item.session.slug;
+  } else if (item instanceof InactiveWorktreeItem) {
+    worktreePath = item.worktree.path;
+    slug = path.basename(worktreePath);
+  } else if (item instanceof InactiveWorktreeDetailItem) {
+    worktreePath = item.worktree.path;
+    slug = path.basename(worktreePath);
+  } else {
+    slug = String(item.label);
+  }
   
   if (worktreePath) {
     try {

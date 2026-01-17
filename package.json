@@ -2,7 +2,7 @@
   "name": "vscode-tmux-worktree",
   "displayName": "TMUX Worktree",
   "description": "Manage tmux sessions with git worktrees",
-  "version": "0.0.1",
+  "version": "0.0.13",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -17,19 +17,19 @@
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
-      "panel": [
+      "activitybar": [
         {
-          "id": "tmux-panel",
+          "id": "tmux-explorer",
           "title": "TMUX",
           "icon": "resources/tmux.svg"
         }
       ]
     },
     "views": {
-      "tmux-panel": [
+      "tmux-explorer": [
         {
           "id": "tmuxSessions",
-          "name": "Sessions"
+          "name": "TMUX Worktrees"
         }
       ]
     },
@@ -58,7 +58,11 @@
       },
       {
         "command": "tmux.attach",
-        "title": "Attach"
+        "title": "Attach in Terminal"
+      },
+      {
+        "command": "tmux.attachInEditor",
+        "title": "Attach in Editor"
       },
       {
         "command": "tmux.openWorktree",
@@ -102,6 +106,12 @@
           "group": "navigation"
         },
         {
+          "command": "tmux.newTask",
+          "when": "view == tmuxSessions",
+          "group": "navigation",
+          "icon": "$(plus)"
+        },
+        {
           "command": "tmux.filter",
           "when": "view == tmuxSessions",
           "group": "navigation"
@@ -115,6 +125,11 @@
       "view/item/context": [
         {
           "command": "tmux.attach",
+          "when": "view == tmuxSessions && viewItem == tmuxSession",
+          "group": "1_attach"
+        },
+        {
+          "command": "tmux.attachInEditor",
           "when": "view == tmuxSessions && viewItem == tmuxSession",
           "group": "1_attach"
         },

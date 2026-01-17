@@ -7,6 +7,7 @@ import { cleanupOrphans } from './commands/orphanCleanup';
 import { autoAttachOnStartup } from './commands/autoAttach';
 import {
   attach,
+  attachInEditor,
   openWorktree,
   copyPath,
   newPane,
@@ -37,6 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
     vscode.commands.registerCommand('tmux.attach', attach),
+    vscode.commands.registerCommand('tmux.attachInEditor', attachInEditor),
     vscode.commands.registerCommand('tmux.openWorktree', openWorktree),
     vscode.commands.registerCommand('tmux.copyPath', copyPath),
     vscode.commands.registerCommand('tmux.newPane', newPane),
