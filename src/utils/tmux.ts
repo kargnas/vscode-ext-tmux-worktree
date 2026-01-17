@@ -21,9 +21,10 @@ export async function isTmuxInstalled(): Promise<boolean> {
 // 세션 목록 조회
 export async function listSessions(): Promise<TmuxSession[]> {
   try {
-    const output = await exec("tmux list-sessions -F '#{session_name}:#{session_windows}:#{session_attached}'");
+    // 탭 구분자 사용 (세션 이름에 탭이 들어갈 수 없음)
+    const output = await exec("tmux list-sessions -F '#{session_name}\t#{session_windows}\t#{session_attached}'");
     return output.split('\n').filter(l => l.trim()).map(line => {
-      const [name, windows, attached] = line.split(':');
+      const [name, windows, attached] = line.split('\t');
       return {
         name,
         windows: parseInt(windows, 10) || 1,

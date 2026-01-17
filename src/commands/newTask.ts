@@ -53,7 +53,7 @@ export async function newTask(): Promise<void> {
     const worktreePath = await addWorktree(repoRoot, finalSlug, baseBranch);
 
     // 7. tmux session 생성
-    const sessionName = `${repoName}:${finalSlug}`;
+    const sessionName = `${repoName}_${finalSlug}`;
     await createSession(sessionName, worktreePath);
     await setSessionWorkdir(sessionName, worktreePath);
 

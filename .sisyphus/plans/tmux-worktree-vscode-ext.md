@@ -655,12 +655,12 @@ async function autoAttachOnStartup(context: vscode.ExtensionContext) {
 | tmux 서버 미실행 | 스킵 (가이드 메시지 없음, 수동으로 시작 필요) |
 
 ### Definition of Done
-- [ ] 확장 실행 시 **하단 Panel에** TMUX 탭이 표시됨 (Terminal/Problems 영역)
-- [ ] New Task로 worktree+tmux 세션 생성/attach가 성공
-- [ ] 세션 클릭으로 attach/전환 가능
-- [ ] Remove Task로 tmux+worktree 삭제 성공
-- [ ] 재시작 시 해당 폴더 tmux 세션 자동 attach
-- [ ] 상태 필드(표준) 표시 및 정렬 동작
+- [x] 확장 실행 시 **하단 Panel에** TMUX 탭이 표시됨 (Terminal/Problems 영역)
+- [x] New Task로 worktree+tmux 세션 생성/attach가 성공
+- [x] 세션 클릭으로 attach/전환 가능
+- [x] Remove Task로 tmux+worktree 삭제 성공
+- [x] 재시작 시 해당 폴더 tmux 세션 자동 attach
+- [x] 상태 필드(표준) 표시 및 정렬 동작
 
 ### Must Have
 - tmux session metadata `@workdir` 저장/조회
@@ -897,7 +897,7 @@ Task 1 → Task 2 → Task 3 → Task 4 → Task 5 → Task 6
   - 현재 폴더에서 command 실행 → tmux attach
   - 다른 폴더에서 실행 → 새 세션 생성
 
-- [ ] 4. 세션 리스트 TreeView 구성 및 상태/정렬/필터
+- [x] 4. 세션 리스트 TreeView 구성 및 상태/정렬/필터
 
   **What to do**:
   - Repo 그룹 → 세션 항목 계층 구조
@@ -1046,7 +1046,7 @@ Task 1 → Task 2 → Task 3 → Task 4 → Task 5 → Task 6
   - git 변경 후 Refresh → dirty 마크(*) 표시 확인
   - Filter에서 "Attached" 선택 → attached 세션만 표시
 
-- [ ] 5. 컨텍스트 메뉴 및 CLI bootstrap 옵션 구현
+- [x] 5. 컨텍스트 메뉴 및 CLI bootstrap 옵션 구현
 
   **What to do**:
   - 컨텍스트 메뉴: Attach, Open Worktree, Copy Path, Run(claude/opencode/custom)
@@ -1178,7 +1178,7 @@ Task 1 → Task 2 → Task 3 → Task 4 → Task 5 → Task 6
   - "New Pane" 클릭 → `tmux list-panes -t <session>` 수 증가 확인
   - "Run: Custom Command..." → 입력창에 `ls -la` 입력 → 터미널에서 실행
 
-- [ ] 6. Remove Task + orphan cleanup + 재시작 자동 attach
+- [x] 6. Remove Task + orphan cleanup + 재시작 자동 attach
 
   **What to do**:
   - Remove Task: tmux session kill + worktree 삭제

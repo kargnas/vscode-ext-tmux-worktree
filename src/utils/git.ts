@@ -105,7 +105,7 @@ export async function isSlugTaken(slug: string, repoName: string, repoRoot: stri
   // 2. tmux 세션에서 확인
   try {
     const sessions = await exec("tmux list-sessions -F '#{session_name}'");
-    const sessionName = `${repoName}:${slug}`;
+    const sessionName = `${repoName}_${slug}`;
     return sessions.split('\n').some(s => s.trim() === sessionName);
   } catch {
     // tmux 서버 없으면 세션 충돌 없음

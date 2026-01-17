@@ -62,8 +62,8 @@ async function getSessionStatus(sessionName: string, worktreePath?: string): Pro
 
   // tmux에서 attached와 lastActive 조회
   try {
-    const output = await exec(`tmux display-message -p -t "${sessionName}" '#{session_attached}:#{session_activity}'`);
-    const [attachedStr, activityStr] = output.split(':');
+    const output = await exec(`tmux display-message -p -t "${sessionName}" '#{session_attached}\t#{session_activity}'`);
+    const [attachedStr, activityStr] = output.split('\t');
     attached = attachedStr === '1';
     lastActive = parseInt(activityStr, 10) || 0;
   } catch {
@@ -133,7 +133,7 @@ async function detectOrphans(
     // .worktrees/ 하위인지 확인
     if (wt.path.includes('/.worktrees/')) {
       const slug = path.basename(wt.path);
-      const expectedSessionName = `${repoName}:${slug}`;
+      const expectedSessionName = `${repoName}_${slug}`;
       if (!sessionNames.has(expectedSessionName)) {
         worktreeOnly.push(wt.path);
       }
@@ -318,8 +318,8 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
     // 1. 모든 tmux 세션 조회
     const allSessions = await listSessions();
 
-    // 2. 해당 repo에 속한 세션만 필터링 (repoName: 패턴)
-    const repoPrefix = `${repoName}:`;
+    // 2. 해당 repo에 속한 세션만 필터링 (repoName_ 패턴)
+    const repoPrefix = `${repoName}_`;
     const repoSessions = allSessions.filter(s => s.name.startsWith(repoPrefix));
 
     // 3. 각 세션의 workdir 조회
