@@ -7,10 +7,12 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/kargnas/tmux-worktree-tui/pkg/config"
 	"github.com/kargnas/tmux-worktree-tui/pkg/discovery"
 	"github.com/kargnas/tmux-worktree-tui/pkg/git"
 	"github.com/kargnas/tmux-worktree-tui/pkg/naming"
+	"github.com/kargnas/tmux-worktree-tui/pkg/tmux"
 )
 
 type state int
@@ -21,6 +23,16 @@ const (
 	stateConfig
 	stateAddPath
 )
+
+// TabType represents the current tab in the project list view
+type TabType int
+
+const (
+	TabAllProjects TabType = iota
+	TabActiveSessions
+)
+
+var tabTitles = []string{"All Projects", "Active Sessions"}
 
 type item struct {
 	title, desc string
@@ -39,6 +51,7 @@ type AttachAction struct {
 
 type Model struct {
 	state         state
+	activeTab     TabType
 	list          list.Model
 	config        *config.Config
 	projects      []string
@@ -47,7 +60,8 @@ type Model struct {
 	textInput     textinput.Model
 	width, height int
 
-	// Pending attach action to perform after quit
+	activeTmuxSessionNames map[string]bool
+
 	AttachSession *AttachAction
 }
 
@@ -101,12 +115,20 @@ func NewModel() Model {
 	ti.Placeholder = "/path/to/search"
 	ti.Focus()
 
+	sessions, _ := tmux.ListSessions()
+	sessionNames := make(map[string]bool)
+	for _, s := range sessions {
+		sessionNames[s.Name] = true
+	}
+
 	return Model{
-		state:     stateProjectList,
-		list:      l,
-		config:    cfg,
-		projects:  repos,
-		textInput: ti,
+		state:                  stateProjectList,
+		activeTab:              TabAllProjects,
+		list:                   l,
+		config:                 cfg,
+		projects:               repos,
+		textInput:              ti,
+		activeTmuxSessionNames: sessionNames,
 	}
 }
 
@@ -155,6 +177,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c", "q":
 			if m.state == stateProjectList || m.state == stateWorktreeList {
 				return m, tea.Quit
+			}
+		case "tab":
+			if m.state == stateProjectList {
+				if m.activeTab == TabAllProjects {
+					m.activeTab = TabActiveSessions
+				} else {
+					m.activeTab = TabAllProjects
+				}
+				m.refreshProjectList()
+				return m, nil
 			}
 		case "c":
 			if m.state == stateProjectList {
@@ -229,11 +261,21 @@ func (m Model) View() string {
 		)
 	}
 
-	if m.state == stateProjectList && len(m.list.Items()) == 0 {
-		return EmptyStyle.Render("⚠️  No projects found!") + "\n\n" +
-			HintStyle.Render("Press 'c' to add a search path (e.g., ~/projects)\n"+
-				"Press 'q' to quit\n"+
-				"Press '?' for help")
+	if m.state == stateProjectList {
+		tabHeader := m.renderTabs()
+
+		if len(m.list.Items()) == 0 {
+			if m.activeTab == TabActiveSessions {
+				return tabHeader + EmptyStyle.Render("No active sessions") + "\n\n" +
+					HintStyle.Render("Press Tab to switch to All Projects")
+			}
+			return tabHeader + EmptyStyle.Render("⚠️  No projects found!") + "\n\n" +
+				HintStyle.Render("Press 'c' to add a search path (e.g., ~/projects)\n"+
+					"Press 'q' to quit\n"+
+					"Press '?' for help")
+		}
+
+		return tabHeader + m.list.View()
 	}
 
 	return m.list.View()
@@ -245,8 +287,47 @@ func (m Model) loadWorktrees(path string) tea.Cmd {
 	return func() tea.Msg {
 		wts, err := git.ListWorktrees(path)
 		if err != nil {
-			return nil // Handle error properly in real app
+			return nil
 		}
 		return worktreesMsg(wts)
 	}
+}
+
+func (m *Model) refreshProjectList() {
+	var filteredProjects []string
+
+	if m.activeTab == TabActiveSessions {
+		for _, repo := range m.projects {
+			repoName := naming.GetRepoName(repo)
+			wts, _ := git.ListWorktrees(repo)
+			for _, wt := range wts {
+				slug := naming.GetSlugFromWorktree(wt.Path, repoName, wt.IsMain)
+				sessionName := naming.GetSessionName(repoName, slug)
+				if m.activeTmuxSessionNames[sessionName] {
+					filteredProjects = append(filteredProjects, repo)
+					break
+				}
+			}
+		}
+	} else {
+		filteredProjects = m.projects
+	}
+
+	items := make([]list.Item, len(filteredProjects))
+	for i, repo := range filteredProjects {
+		items[i] = item{title: naming.GetRepoName(repo), desc: repo, path: repo}
+	}
+	m.list.SetItems(items)
+}
+
+func (m Model) renderTabs() string {
+	var tabs []string
+	for i, title := range tabTitles {
+		if TabType(i) == m.activeTab {
+			tabs = append(tabs, TabActiveStyle.Render(title))
+		} else {
+			tabs = append(tabs, TabInactiveStyle.Render(title))
+		}
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, tabs...) + "\n\n"
 }
