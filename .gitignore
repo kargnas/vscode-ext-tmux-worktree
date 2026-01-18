@@ -8,6 +8,12 @@ out/
 # System files
 .DS_Store
 
+# Environment Variables
+.env
+.env.*
+!.env.ai-ready
+!.env.example
+
 # Research files (temporary - not part of extension)
 api_ref_list.txt
 terminal_*.txt
@@ -21,3 +27,5 @@ vscode.d.ts
 vscode.proposed.*.d.ts
 cli/twt
 cli/tmux-worktree-tui
+
+.sisyphus/
