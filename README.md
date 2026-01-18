@@ -46,12 +46,6 @@ This project provides a seamless workflow for developers using `git worktree` an
 4.  Run lint and build tests.
 5.  Submit a Pull Request.
 
-**Note**: This project is for OP.GG internal use. Please ensure you comply with internal security policies.
-
-## 📄 License
-
-Internal (OP.GG).
-
 ## 🤖 AI Agent Setup
 
 For AI-assisted development, see [README.ai-ready.md](README.ai-ready.md).
