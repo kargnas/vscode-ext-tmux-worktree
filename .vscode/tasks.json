@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "📦 Install All Dependencies",
+      "type": "shell",
+      "command": "npm install && cd cli && go mod download",
+      "problemMatcher": [],
+      "group": "none"
+    },
+    {
+      "label": "🏗️ Build & Package Extension...",
+      "type": "shell",
+      "command": "bun run compile && npx vsce package --no-dependencies",
+      "problemMatcher": ["$tsc"],
+      "group": "build"
+    },
+    {
+      "label": "🚀 Deploy to Antigravity",
+      "type": "shell",
+      "command": "bun run compile && npx vsce package --no-dependencies && antigravity --install-extension vscode-tmux-worktree-0.0.13.vsix --force",
+      "problemMatcher": ["$tsc"],
+      "group": "build"
+    },
+    {
+      "label": "🔧 Install CLI (Go)",
+      "type": "shell",
+      "command": "go install ./...",
+      "options": { "cwd": "${workspaceFolder}/cli" },
+      "problemMatcher": [],
+      "group": "build"
+    },
+    {
+      "label": "npm: compile",
+      "type": "npm",
+      "script": "compile",
+      "problemMatcher": ["$tsc"],
+      "group": "build",
+      "presentation": { "reveal": "silent" }
+    }
+  ]
+}

@@ -1,3 +1,55 @@
+# TMUX Worktree
+
+Monorepo containing VS Code extension and Go CLI for managing tmux sessions with git worktrees.
+
+## 📁 Project Structure
+
+```
+.
+├── src/                    # VS Code Extension (TypeScript)
+│   ├── extension.ts        # Entry point
+│   ├── commands/           # Command handlers
+│   ├── providers/          # TreeView providers
+│   └── utils/              # tmux, git, exec utilities
+├── cli/                    # CLI: tmux-worktree-tui (Go)
+│   ├── main.go             # Entry point
+│   ├── internal/ui/        # Bubble Tea TUI
+│   └── pkg/                # Shared packages (tmux, git, config, etc.)
+├── out/                    # Compiled JS output
+└── .vscode/                # IDE configuration
+```
+
+## 🛠 Tech Stack
+
+| Component | Stack |
+|-----------|-------|
+| **VS Code Extension** | TypeScript, VS Code API 1.85+ |
+| **CLI (tmux-worktree-tui)** | Go 1.25, Bubble Tea, Lipgloss |
+| **Package Manager** | npm/bun (ext), go modules (cli) |
+
+## 🚀 Quick Start
+
+### VS Code Extension
+```bash
+npm install                          # Install deps
+bun run compile                      # Compile TypeScript
+# Press F5 in VS Code → "Run Extension"
+```
+
+### CLI (tmux-worktree-tui)
+```bash
+cd cli && go install ./...           # Install to ~/go/bin/
+tmux-worktree-tui                    # Run TUI
+```
+
+### Deploy Extension to Antigravity
+```bash
+bun run compile && npx vsce package --no-dependencies
+antigravity --install-extension vscode-tmux-worktree-0.0.13.vsix --force
+```
+
+---
+
 ## GIT
 - Always commit when you have changes, but compiling should be successful.
 
