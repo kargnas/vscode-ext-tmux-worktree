@@ -138,3 +138,95 @@ func formatRelativeTimeShort(t time.Time) string {
 	}
 	return fmt.Sprintf("%dmo", int(duration.Hours()/24/30))
 }
+
+type WorktreeItem struct {
+	Slug       string
+	Branch     string
+	Path       string
+	IsActive   bool
+	RecentTime time.Time
+	GitStatus  *git.GitStatus
+	GitLoading bool
+	GitError   bool
+	Worktree   *git.Worktree
+}
+
+func (w WorktreeItem) Title() string       { return w.Slug }
+func (w WorktreeItem) Description() string { return w.Path }
+func (w WorktreeItem) FilterValue() string { return w.Slug }
+
+type WorktreeDelegate struct{}
+
+func NewWorktreeDelegate() WorktreeDelegate {
+	return WorktreeDelegate{}
+}
+
+func (d WorktreeDelegate) Height() int                             { return 1 }
+func (d WorktreeDelegate) Spacing() int                            { return 0 }
+func (d WorktreeDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+
+func (d WorktreeDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	wt, ok := listItem.(WorktreeItem)
+	if !ok {
+		return
+	}
+
+	isSelected := index == m.Index()
+	str := d.renderItem(wt, isSelected)
+	fmt.Fprint(w, str)
+}
+
+func (d WorktreeDelegate) renderItem(wt WorktreeItem, isSelected bool) string {
+	indicator := "○"
+	if wt.IsActive {
+		indicator = "●"
+	}
+
+	var indicatorStyled string
+	if wt.IsActive {
+		indicatorStyled = ActiveIndicatorStyle.Render(indicator)
+	} else {
+		indicatorStyled = InactiveIndicatorStyle.Render(indicator)
+	}
+
+	slug := wt.Slug
+	if len(slug) > 20 {
+		slug = slug[:17] + "..."
+	}
+
+	var slugStyled string
+	if isSelected {
+		slugStyled = SelectedTitle.Render(slug)
+	} else {
+		slugStyled = NormalTitle.Render(slug)
+	}
+
+	branchStyled := DimStyle.Render(fmt.Sprintf("[%s]", wt.Branch))
+
+	var gitStatusStr string
+	if wt.GitLoading {
+		gitStatusStr = LoadingStyle.Render("...")
+	} else if wt.GitError {
+		gitStatusStr = ErrorStyle.Render("--")
+	} else if wt.GitStatus != nil && wt.GitStatus.IsDirty() {
+		total := wt.GitStatus.Modified + wt.GitStatus.Added + wt.GitStatus.Untracked
+		gitStatusStr = DirtyStyle.Render(fmt.Sprintf("M:%d", total))
+	} else {
+		gitStatusStr = "     "
+	}
+
+	var timeStr string
+	if wt.RecentTime.IsZero() {
+		timeStr = TimeStyle.Render("N/A")
+	} else {
+		timeStr = TimeStyle.Render(formatRelativeTimeShort(wt.RecentTime))
+	}
+
+	return fmt.Sprintf("%s %-22s %s %s %s",
+		indicatorStyled,
+		slugStyled,
+		branchStyled,
+		gitStatusStr,
+		timeStr,
+	)
+}

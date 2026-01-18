@@ -36,15 +36,6 @@ const (
 
 var tabTitles = []string{"All Projects", "Active Sessions"}
 
-type worktreeItem struct {
-	title, desc string
-	worktree    *git.Worktree
-}
-
-func (i worktreeItem) Title() string       { return i.title }
-func (i worktreeItem) Description() string { return i.desc }
-func (i worktreeItem) FilterValue() string { return i.title }
-
 type AttachAction struct {
 	SessionName string
 	Cwd         string
@@ -283,9 +274,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, m.loadWorktrees(i.Path)
 				}
 			} else if m.state == stateWorktreeList {
-				i, ok := m.list.SelectedItem().(worktreeItem)
+				i, ok := m.list.SelectedItem().(WorktreeItem)
 				if ok {
-					wt := i.worktree
+					wt := i.Worktree
 					slug := naming.GetSlugFromWorktree(wt.Path, m.repoName, wt.IsMain)
 					sessionName := naming.GetSessionName(m.repoName, slug)
 
@@ -299,20 +290,46 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case worktreesMsg:
-		items := make([]list.Item, len(msg))
-		for i, wt := range msg {
+		items := make([]list.Item, len(msg.worktrees))
+		for i, wt := range msg.worktrees {
 			slug := naming.GetSlugFromWorktree(wt.Path, m.repoName, wt.IsMain)
 			isRoot := naming.IsRoot(slug, m.repoName, wt.Path, wt.IsMain)
 
-			title := slug
+			displaySlug := slug
 			if isRoot {
-				title = "(root)"
+				displaySlug = "(root)"
 			}
 
-			desc := fmt.Sprintf("%s [%s]", wt.Path, wt.Branch)
-			items[i] = worktreeItem{title: title, desc: desc, worktree: &wt}
+			sessionName := naming.GetSessionName(m.repoName, slug)
+			isActive := m.activeTmuxSessionNames[sessionName]
+			recentTime := recent.GetCombinedRecentTime(wt.Path)
+
+			items[i] = WorktreeItem{
+				Slug:       displaySlug,
+				Branch:     wt.Branch,
+				Path:       wt.Path,
+				IsActive:   isActive,
+				RecentTime: recentTime,
+				GitLoading: true,
+				Worktree:   &wt,
+			}
 		}
 		m.list.SetItems(items)
+		return m, m.loadWorktreeGitStatuses(msg.worktrees)
+
+	case worktreeGitStatusMsg:
+		for _, item := range m.list.Items() {
+			if wt, ok := item.(WorktreeItem); ok && wt.Path == msg.Path {
+				wt.GitLoading = false
+				if msg.Error != nil {
+					wt.GitError = true
+				} else {
+					wt.GitStatus = msg.Status
+				}
+				m.updateWorktreeItem(wt)
+				break
+			}
+		}
 	}
 
 	m.list, cmd = m.list.Update(msg)
@@ -357,7 +374,15 @@ func (m Model) View() string {
 	return m.list.View()
 }
 
-type worktreesMsg []git.Worktree
+type worktreesMsg struct {
+	worktrees []git.Worktree
+}
+
+type worktreeGitStatusMsg struct {
+	Path   string
+	Status *git.GitStatus
+	Error  error
+}
 
 func (m Model) loadWorktrees(path string) tea.Cmd {
 	return func() tea.Msg {
@@ -365,8 +390,31 @@ func (m Model) loadWorktrees(path string) tea.Cmd {
 		if err != nil {
 			return nil
 		}
-		return worktreesMsg(wts)
+		return worktreesMsg{worktrees: wts}
 	}
+}
+
+func (m Model) loadWorktreeGitStatuses(worktrees []git.Worktree) tea.Cmd {
+	var cmds []tea.Cmd
+	for _, wt := range worktrees {
+		path := wt.Path
+		cmds = append(cmds, func() tea.Msg {
+			status, err := git.GetStatus(path)
+			return worktreeGitStatusMsg{Path: path, Status: status, Error: err}
+		})
+	}
+	return tea.Batch(cmds...)
+}
+
+func (m *Model) updateWorktreeItem(updated WorktreeItem) {
+	items := m.list.Items()
+	for i, item := range items {
+		if wt, ok := item.(WorktreeItem); ok && wt.Path == updated.Path {
+			items[i] = updated
+			break
+		}
+	}
+	m.list.SetItems(items)
 }
 
 func (m *Model) refreshProjectList() {
