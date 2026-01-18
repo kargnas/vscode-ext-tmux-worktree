@@ -1,80 +1,64 @@
 package ui
 
-import (
-	"github.com/charmbracelet/lipgloss"
-)
+import "github.com/charmbracelet/lipgloss"
 
 var (
 	// Colors
-	ColorBackground = lipgloss.Color("234")
-	ColorForeground = lipgloss.Color("252")
-	ColorDim        = lipgloss.Color("240")
-	ColorAccent     = lipgloss.Color("99")  // Purple
-	ColorSuccess    = lipgloss.Color("42")  // Green
-	ColorError      = lipgloss.Color("196") // Red
-	ColorWarning    = lipgloss.Color("214") // Orange
-	ColorHighlight  = lipgloss.Color("63")  // Blue-ish purple for selection
+	primaryColor   = lipgloss.Color("#7D56F4") // Purple
+	secondaryColor = lipgloss.Color("#FF79C6") // Pink
+	accentColor    = lipgloss.Color("#8BE9FD") // Cyan
+	subtleColor    = lipgloss.Color("#6272A4") // Gray/Blue
+	warningColor   = lipgloss.Color("#FFB86C") // Orange
+	errorColor     = lipgloss.Color("#FF5555") // Red
+	successColor   = lipgloss.Color("#50FA7B") // Green
+	textColor      = lipgloss.Color("#F8F8F2") // White
+	dimColor       = lipgloss.Color("#44475A") // Dark Gray
 
 	// Layout
-	StyleApp = lipgloss.NewStyle().
-			Padding(1, 2)
+	appStyle = lipgloss.NewStyle().Margin(1, 2)
 
-	// Header
-	StyleHeader = lipgloss.NewStyle().
+	// Header / Tabs
+	tabStyle = lipgloss.NewStyle().
+			Padding(0, 1).
+			Border(lipgloss.RoundedBorder(), false, true, false, true).
+			BorderForeground(dimColor).
+			Foreground(subtleColor)
+
+	activeTabStyle = tabStyle.Copy().
+			BorderForeground(primaryColor).
+			Foreground(primaryColor).
+			Bold(true)
+
+	tabGap = lipgloss.NewStyle().Width(1)
+
+	filterStyle = lipgloss.NewStyle().
+			Foreground(warningColor).
+			MarginLeft(2)
+
+	// List
+	listStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ColorDim).
-			Padding(0, 1).
-			MarginBottom(1)
+			BorderForeground(subtleColor).
+			Padding(0, 1)
 
-	StyleTabActive = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(ColorAccent).
-			Border(lipgloss.NormalBorder(), false, false, true, false).
-			BorderForeground(ColorAccent).
-			Padding(0, 2)
-
-	StyleTabInactive = lipgloss.NewStyle().
-				Foreground(ColorDim).
-				Padding(0, 2)
-
-	StyleFilterBar = lipgloss.NewStyle().
-			MarginTop(0).
-			Padding(0, 1).
-			Foreground(ColorDim)
-
-	StyleFilterActive = lipgloss.NewStyle().
-				Foreground(ColorWarning).
-				Bold(true)
-
-	// List Items
-	StyleItem = lipgloss.NewStyle().
+	itemStyle = lipgloss.NewStyle().
 			PaddingLeft(2)
 
-	StyleItemRepo = lipgloss.NewStyle().
-			Bold(true).
-			Foreground(ColorForeground)
-
-	StyleItemPath = lipgloss.NewStyle().
-			Foreground(ColorDim).
-			Italic(true)
-
-	StyleItemSelected = lipgloss.NewStyle().
+	selectedItemStyle = lipgloss.NewStyle().
+				PaddingLeft(0).
+				Foreground(primaryColor).
 				Border(lipgloss.NormalBorder(), false, false, false, true).
-				BorderForeground(ColorAccent).
-				PaddingLeft(1).
-				Foreground(ColorAccent)
+				BorderForeground(primaryColor).
+				Padding(0, 0, 0, 1).
+				Bold(true)
 
-	// Status Badges
-	StyleBadgeDirty = lipgloss.NewStyle().
-			Foreground(ColorWarning).
-			SetString("●")
+	descriptionStyle = lipgloss.NewStyle().
+				Foreground(subtleColor)
 
-	StyleBadgeClean = lipgloss.NewStyle().
-			Foreground(ColorSuccess).
-			SetString("✓")
+	// Status Bar
+	statusBarStyle = lipgloss.NewStyle().
+			Foreground(subtleColor).
+			MarginTop(1)
 
-	StyleBadgeActive = lipgloss.NewStyle().
-				Foreground(ColorSuccess).
-				Bold(true).
-				SetString("⚡")
+	spinnerStyle = lipgloss.NewStyle().Foreground(secondaryColor)
 )
