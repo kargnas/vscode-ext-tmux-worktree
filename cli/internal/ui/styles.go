@@ -74,9 +74,11 @@ var (
 
 // Time display style
 var (
-	// TimeStyle: recent time display (dim)
 	TimeStyle = lipgloss.NewStyle().
-		Foreground(DimColor)
+			Foreground(DimColor)
+
+	DimStyle = lipgloss.NewStyle().
+			Foreground(DimColor)
 )
 
 // Filter checkbox styles

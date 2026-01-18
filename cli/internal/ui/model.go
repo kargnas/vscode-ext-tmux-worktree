@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -12,6 +13,7 @@ import (
 	"github.com/kargnas/tmux-worktree-tui/pkg/discovery"
 	"github.com/kargnas/tmux-worktree-tui/pkg/git"
 	"github.com/kargnas/tmux-worktree-tui/pkg/naming"
+	"github.com/kargnas/tmux-worktree-tui/pkg/recent"
 	"github.com/kargnas/tmux-worktree-tui/pkg/tmux"
 )
 
@@ -34,15 +36,14 @@ const (
 
 var tabTitles = []string{"All Projects", "Active Sessions"}
 
-type item struct {
+type worktreeItem struct {
 	title, desc string
-	path        string        // for projects
-	worktree    *git.Worktree // for worktrees
+	worktree    *git.Worktree
 }
 
-func (i item) Title() string       { return i.title }
-func (i item) Description() string { return i.desc }
-func (i item) FilterValue() string { return i.title }
+func (i worktreeItem) Title() string       { return i.title }
+func (i worktreeItem) Description() string { return i.desc }
+func (i worktreeItem) FilterValue() string { return i.title }
 
 type AttachAction struct {
 	SessionName string
@@ -52,9 +53,12 @@ type AttachAction struct {
 type Model struct {
 	state         state
 	activeTab     TabType
+	sortType      SortType
+	dirtyFilter   bool
 	list          list.Model
 	config        *config.Config
 	projects      []string
+	projectData   map[string]*ProjectItem
 	selectedRepo  string
 	repoName      string
 	textInput     textinput.Model
@@ -67,6 +71,8 @@ type Model struct {
 
 type keyMap struct {
 	AddPath key.Binding
+	Sort    key.Binding
+	Filter  key.Binding
 }
 
 func newKeyMap() *keyMap {
@@ -74,6 +80,14 @@ func newKeyMap() *keyMap {
 		AddPath: key.NewBinding(
 			key.WithKeys("c"),
 			key.WithHelp("c", "add path"),
+		),
+		Sort: key.NewBinding(
+			key.WithKeys("s"),
+			key.WithHelp("s", "sort"),
+		),
+		Filter: key.NewBinding(
+			key.WithKeys(" "),
+			key.WithHelp("space", "filter dirty"),
 		),
 	}
 }
@@ -83,57 +97,93 @@ func NewModel() Model {
 
 	repos := discovery.FindGitRepos(cfg.SearchPaths, cfg.Depth)
 
-	items := make([]list.Item, len(repos))
-	for i, repo := range repos {
-		items[i] = item{title: naming.GetRepoName(repo), desc: repo, path: repo}
-	}
-
-	delegate := list.NewDefaultDelegate()
-
-	delegate.Styles.NormalTitle = NormalTitle
-	delegate.Styles.NormalDesc = NormalDesc
-	delegate.Styles.SelectedTitle = SelectedTitle
-	delegate.Styles.SelectedDesc = SelectedDesc
-
-	l := list.New(items, delegate, 0, 0)
-	l.Title = "Select Project"
-	l.SetShowHelp(true)
-	l.SetFilteringEnabled(true)
-
-	l.Styles.HelpStyle = HelpStyle
-	l.Styles.Title = ListTitleStyle
-
-	keys := newKeyMap()
-	l.AdditionalShortHelpKeys = func() []key.Binding {
-		return []key.Binding{keys.AddPath}
-	}
-	l.AdditionalFullHelpKeys = func() []key.Binding {
-		return []key.Binding{keys.AddPath}
-	}
-
-	ti := textinput.New()
-	ti.Placeholder = "/path/to/search"
-	ti.Focus()
-
 	sessions, _ := tmux.ListSessions()
 	sessionNames := make(map[string]bool)
 	for _, s := range sessions {
 		sessionNames[s.Name] = true
 	}
 
-	return Model{
+	projectData := make(map[string]*ProjectItem)
+	for _, repo := range repos {
+		repoName := naming.GetRepoName(repo)
+		wts, _ := git.ListWorktrees(repo)
+
+		isActive := false
+		for _, wt := range wts {
+			slug := naming.GetSlugFromWorktree(wt.Path, repoName, wt.IsMain)
+			sessionName := naming.GetSessionName(repoName, slug)
+			if sessionNames[sessionName] {
+				isActive = true
+				break
+			}
+		}
+
+		projectData[repo] = &ProjectItem{
+			Name:          repoName,
+			Path:          repo,
+			WorktreeCount: len(wts),
+			RecentTime:    recent.GetCombinedRecentTime(repo),
+			IsActive:      isActive,
+			GitLoading:    true,
+		}
+	}
+
+	delegate := NewProjectDelegate()
+	l := list.New([]list.Item{}, delegate, 0, 0)
+	l.Title = ""
+	l.SetShowHelp(true)
+	l.SetFilteringEnabled(true)
+	l.SetShowStatusBar(false)
+
+	l.Styles.HelpStyle = HelpStyle
+	l.Styles.Title = ListTitleStyle
+
+	keys := newKeyMap()
+	l.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{keys.AddPath, keys.Sort, keys.Filter}
+	}
+	l.AdditionalFullHelpKeys = func() []key.Binding {
+		return []key.Binding{keys.AddPath, keys.Sort, keys.Filter}
+	}
+
+	ti := textinput.New()
+	ti.Placeholder = "/path/to/search"
+	ti.Focus()
+
+	m := Model{
 		state:                  stateProjectList,
 		activeTab:              TabAllProjects,
+		sortType:               SortByRecent,
+		dirtyFilter:            false,
 		list:                   l,
 		config:                 cfg,
 		projects:               repos,
+		projectData:            projectData,
 		textInput:              ti,
 		activeTmuxSessionNames: sessionNames,
 	}
+
+	m.refreshProjectList()
+
+	return m
 }
 
 func (m Model) Init() tea.Cmd {
-	return nil
+	var cmds []tea.Cmd
+	for _, repo := range m.projects {
+		path := repo
+		cmds = append(cmds, func() tea.Msg {
+			status, err := git.GetStatus(path)
+			return gitStatusMsg{Path: path, Status: status, Error: err}
+		})
+	}
+	return tea.Batch(cmds...)
+}
+
+type gitStatusMsg struct {
+	Path   string
+	Status *git.GitStatus
+	Error  error
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -142,9 +192,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
-		m.list.SetSize(msg.Width, msg.Height)
+		headerHeight := 4
+		m.list.SetSize(msg.Width, msg.Height-headerHeight)
+
+	case gitStatusMsg:
+		if p, ok := m.projectData[msg.Path]; ok {
+			p.GitLoading = false
+			if msg.Error != nil {
+				p.GitError = true
+			} else {
+				p.GitStatus = msg.Status
+			}
+			m.refreshProjectList()
+		}
 
 	case tea.KeyMsg:
+		if m.list.FilterState() == list.Filtering {
+			m.list, cmd = m.list.Update(msg)
+			return m, cmd
+		}
+
 		if m.state == stateAddPath {
 			switch msg.Type {
 			case tea.KeyEnter:
@@ -154,13 +221,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if err := config.SaveConfig(m.config); err != nil {
 						return m, tea.Quit
 					}
-					// Refresh
 					m.projects = discovery.FindGitRepos(m.config.SearchPaths, m.config.Depth)
-					items := make([]list.Item, len(m.projects))
-					for i, repo := range m.projects {
-						items[i] = item{title: naming.GetRepoName(repo), desc: repo, path: repo}
-					}
-					m.list.SetItems(items)
+					m.refreshProjectList()
 				}
 				m.textInput.Reset()
 				m.state = stateProjectList
@@ -188,6 +250,18 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.refreshProjectList()
 				return m, nil
 			}
+		case "s":
+			if m.state == stateProjectList {
+				m.sortType = (m.sortType + 1) % 3
+				m.refreshProjectList()
+				return m, nil
+			}
+		case " ":
+			if m.state == stateProjectList {
+				m.dirtyFilter = !m.dirtyFilter
+				m.refreshProjectList()
+				return m, nil
+			}
 		case "c":
 			if m.state == stateProjectList {
 				m.state = stateAddPath
@@ -196,28 +270,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "esc":
 			if m.state == stateWorktreeList {
 				m.state = stateProjectList
-				// Refresh project list
-				items := make([]list.Item, len(m.projects))
-				for i, repo := range m.projects {
-					items[i] = item{title: naming.GetRepoName(repo), desc: repo, path: repo}
-				}
-				m.list.SetItems(items)
-				m.list.Title = "Select Project"
+				m.refreshProjectList()
 				return m, nil
 			}
 		case "enter":
 			if m.state == stateProjectList {
-				i, ok := m.list.SelectedItem().(item)
+				i, ok := m.list.SelectedItem().(ProjectItem)
 				if ok {
-					m.selectedRepo = i.path
-					m.repoName = naming.GetRepoName(i.path)
+					m.selectedRepo = i.Path
+					m.repoName = i.Name
 					m.state = stateWorktreeList
-					return m, m.loadWorktrees(i.path)
+					return m, m.loadWorktrees(i.Path)
 				}
 			} else if m.state == stateWorktreeList {
-				i, ok := m.list.SelectedItem().(item)
+				i, ok := m.list.SelectedItem().(worktreeItem)
 				if ok {
-					// Prepare attach action and quit
 					wt := i.worktree
 					slug := naming.GetSlugFromWorktree(wt.Path, m.repoName, wt.IsMain)
 					sessionName := naming.GetSessionName(m.repoName, slug)
@@ -243,10 +310,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 			desc := fmt.Sprintf("%s [%s]", wt.Path, wt.Branch)
-			items[i] = item{title: title, desc: desc, worktree: &wt}
+			items[i] = worktreeItem{title: title, desc: desc, worktree: &wt}
 		}
 		m.list.SetItems(items)
-		m.list.Title = fmt.Sprintf("Worktrees: %s", m.repoName)
 	}
 
 	m.list, cmd = m.list.Update(msg)
@@ -263,19 +329,29 @@ func (m Model) View() string {
 
 	if m.state == stateProjectList {
 		tabHeader := m.renderTabs()
+		filterLine := m.renderFilterLine()
 
 		if len(m.list.Items()) == 0 {
 			if m.activeTab == TabActiveSessions {
-				return tabHeader + EmptyStyle.Render("No active sessions") + "\n\n" +
+				return tabHeader + filterLine + EmptyStyle.Render("No active sessions") + "\n\n" +
 					HintStyle.Render("Press Tab to switch to All Projects")
 			}
-			return tabHeader + EmptyStyle.Render("⚠️  No projects found!") + "\n\n" +
+			if m.dirtyFilter {
+				return tabHeader + filterLine + EmptyStyle.Render("No dirty projects") + "\n\n" +
+					HintStyle.Render("Press Space to disable filter")
+			}
+			return tabHeader + filterLine + EmptyStyle.Render("⚠️  No projects found!") + "\n\n" +
 				HintStyle.Render("Press 'c' to add a search path (e.g., ~/projects)\n"+
 					"Press 'q' to quit\n"+
 					"Press '?' for help")
 		}
 
-		return tabHeader + m.list.View()
+		return tabHeader + filterLine + m.list.View()
+	}
+
+	if m.state == stateWorktreeList {
+		title := fmt.Sprintf("Worktrees: %s", m.repoName)
+		return ListTitleStyle.Render(title) + "\n" + m.list.View()
 	}
 
 	return m.list.View()
@@ -294,28 +370,51 @@ func (m Model) loadWorktrees(path string) tea.Cmd {
 }
 
 func (m *Model) refreshProjectList() {
-	var filteredProjects []string
+	var filteredProjects []*ProjectItem
 
-	if m.activeTab == TabActiveSessions {
-		for _, repo := range m.projects {
-			repoName := naming.GetRepoName(repo)
-			wts, _ := git.ListWorktrees(repo)
-			for _, wt := range wts {
-				slug := naming.GetSlugFromWorktree(wt.Path, repoName, wt.IsMain)
-				sessionName := naming.GetSessionName(repoName, slug)
-				if m.activeTmuxSessionNames[sessionName] {
-					filteredProjects = append(filteredProjects, repo)
-					break
-				}
-			}
+	for _, repo := range m.projects {
+		p := m.projectData[repo]
+		if p == nil {
+			continue
 		}
-	} else {
-		filteredProjects = m.projects
+
+		if m.activeTab == TabActiveSessions && !p.IsActive {
+			continue
+		}
+
+		if m.dirtyFilter {
+			if p.GitLoading || p.GitError {
+				filteredProjects = append(filteredProjects, p)
+			} else if p.GitStatus != nil && p.GitStatus.IsDirty() {
+				filteredProjects = append(filteredProjects, p)
+			}
+			continue
+		}
+
+		filteredProjects = append(filteredProjects, p)
+	}
+
+	switch m.sortType {
+	case SortByName:
+		sort.Slice(filteredProjects, func(i, j int) bool {
+			return filteredProjects[i].Name < filteredProjects[j].Name
+		})
+	case SortByRecent:
+		sort.Slice(filteredProjects, func(i, j int) bool {
+			return filteredProjects[i].RecentTime.After(filteredProjects[j].RecentTime)
+		})
+	case SortByActive:
+		sort.Slice(filteredProjects, func(i, j int) bool {
+			if filteredProjects[i].IsActive != filteredProjects[j].IsActive {
+				return filteredProjects[i].IsActive
+			}
+			return filteredProjects[i].Name < filteredProjects[j].Name
+		})
 	}
 
 	items := make([]list.Item, len(filteredProjects))
-	for i, repo := range filteredProjects {
-		items[i] = item{title: naming.GetRepoName(repo), desc: repo, path: repo}
+	for i, p := range filteredProjects {
+		items[i] = *p
 	}
 	m.list.SetItems(items)
 }
@@ -329,5 +428,23 @@ func (m Model) renderTabs() string {
 			tabs = append(tabs, TabInactiveStyle.Render(title))
 		}
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, tabs...) + "\n\n"
+	return lipgloss.JoinHorizontal(lipgloss.Top, tabs...) + "\n"
+}
+
+func (m Model) renderFilterLine() string {
+	checkbox := "[ ]"
+	if m.dirtyFilter {
+		checkbox = "[x]"
+	}
+
+	var filterPart string
+	if m.dirtyFilter {
+		filterPart = FilterActiveStyle.Render(checkbox + " Dirty only")
+	} else {
+		filterPart = FilterInactiveStyle.Render(checkbox + " Dirty only")
+	}
+
+	sortPart := DimStyle.Render(fmt.Sprintf("Sort: %s", sortNames[m.sortType]))
+
+	return filterPart + "  " + sortPart + "\n\n"
 }
