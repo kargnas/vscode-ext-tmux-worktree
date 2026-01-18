@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"syscall"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/kargnas/tmux-worktree-tui/internal/ui"
@@ -11,7 +13,7 @@ import (
 
 func main() {
 	model := ui.NewModel()
-	p := tea.NewProgram(model, tea.WithAltScreen())
+	p := tea.NewProgram(model)
 
 	finalModel, err := p.Run()
 	if err != nil {
@@ -28,11 +30,29 @@ func main() {
 				// or handle strictly if needed. For now, try attach anyway.
 			}
 
-			// Attach
-			err = tmux.AttachSession(m.AttachSession.SessionName)
-			if err != nil {
-				fmt.Printf("Error attaching to session: %v\n", err)
-				os.Exit(1)
+			// Attach - use syscall.Exec to replace current process
+			if tmux.IsInsideTmux() {
+				// Inside tmux: use switch-client
+				err = tmux.SwitchClient(m.AttachSession.SessionName)
+				if err != nil {
+					fmt.Printf("Error switching to session: %v\n", err)
+					os.Exit(1)
+				}
+			} else {
+				// Outside tmux: replace process with tmux attach
+				tmuxPath, err := exec.LookPath("tmux")
+				if err != nil {
+					fmt.Printf("Error finding tmux: %v\n", err)
+					os.Exit(1)
+				}
+
+				// syscall.Exec replaces the current process entirely
+				// This ensures proper terminal handling for tmux
+				err = syscall.Exec(tmuxPath, []string{"tmux", "attach", "-t", m.AttachSession.SessionName}, os.Environ())
+				if err != nil {
+					fmt.Printf("Error attaching to session: %v\n", err)
+					os.Exit(1)
+				}
 			}
 		}
 	}

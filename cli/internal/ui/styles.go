@@ -1,139 +1,80 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
-
-// Color palette constants
-const (
-	// Active/Selected colors
-	ActiveColor    = lipgloss.Color("#00D9FF") // cyan
-	SelectedColor  = lipgloss.Color("#FFEB3B") // yellow
-	HighlightColor = lipgloss.Color("#FFF9C4") // light yellow
-
-	// Inactive/Normal colors
-	InactiveColor = lipgloss.Color("#B0BEC5") // gray
-	DimColor      = lipgloss.Color("#78909C") // dim gray
-
-	// Status colors
-	DirtyColor   = lipgloss.Color("#FFC107") // yellow/amber
-	ErrorColor   = lipgloss.Color("#F44336") // red
-	SuccessColor = lipgloss.Color("#4CAF50") // green
-
-	// UI element colors
-	HelpColor    = lipgloss.Color("#90CAF9") // light blue
-	TitleColor   = lipgloss.Color("#4CAF50") // green
-	WarningColor = lipgloss.Color("#FF9800") // orange
+import (
+	"github.com/charmbracelet/lipgloss"
 )
 
-// Tab styles for Tab UI layout
 var (
-	TabActiveStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ActiveColor).
-			Foreground(ActiveColor).
-			Bold(true).
-			Padding(0, 2)
+	// Colors
+	ColorBackground = lipgloss.Color("234")
+	ColorForeground = lipgloss.Color("252")
+	ColorDim        = lipgloss.Color("240")
+	ColorAccent     = lipgloss.Color("99")  // Purple
+	ColorSuccess    = lipgloss.Color("42")  // Green
+	ColorError      = lipgloss.Color("196") // Red
+	ColorWarning    = lipgloss.Color("214") // Orange
+	ColorHighlight  = lipgloss.Color("63")  // Blue-ish purple for selection
 
-	TabInactiveStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(InactiveColor).
-				Foreground(InactiveColor).
-				Padding(0, 2)
-
-	TabGapStyle = lipgloss.NewStyle().
-			Foreground(DimColor)
-)
-
-// Status indicator styles
-var (
-	// ActiveIndicatorStyle: "●" for active sessions (cyan)
-	ActiveIndicatorStyle = lipgloss.NewStyle().
-				Foreground(ActiveColor).
-				Bold(true)
-
-	// InactiveIndicatorStyle: "○" for inactive worktrees (gray)
-	InactiveIndicatorStyle = lipgloss.NewStyle().
-				Foreground(InactiveColor)
-)
-
-// Git status display styles
-var (
-	// DirtyStyle: modified files indicator (yellow/amber)
-	DirtyStyle = lipgloss.NewStyle().
-			Foreground(DirtyColor).
-			Bold(true)
-
-	// LoadingStyle: "..." loading indicator (dim gray)
-	LoadingStyle = lipgloss.NewStyle().
-			Foreground(DimColor).
-			Italic(true)
-
-	// ErrorStyle: "--" error indicator (red)
-	ErrorStyle = lipgloss.NewStyle().
-			Foreground(ErrorColor)
-)
-
-// Time display style
-var (
-	TimeStyle = lipgloss.NewStyle().
-			Foreground(DimColor)
-
-	DimStyle = lipgloss.NewStyle().
-			Foreground(DimColor)
-)
-
-// Filter checkbox styles
-var (
-	// FilterActiveStyle: checked state
-	FilterActiveStyle = lipgloss.NewStyle().
-				Foreground(ActiveColor).
-				Bold(true)
-
-	// FilterInactiveStyle: unchecked state
-	FilterInactiveStyle = lipgloss.NewStyle().
-				Foreground(InactiveColor)
-)
-
-// List item styles (for bubble tea list component)
-var (
-	// NormalTitle: 일반 상태 제목 스타일 (cyan, bold)
-	NormalTitle = lipgloss.NewStyle().
-			Foreground(ActiveColor).
-			Bold(true).
-			Padding(0, 1)
-
-	// SelectedTitle: 선택된 상태 제목 스타일 (yellow, bold)
-	SelectedTitle = lipgloss.NewStyle().
-			Foreground(SelectedColor).
-			Bold(true).
-			Padding(0, 1)
-
-	// NormalDesc: 일반 상태 설명 스타일 (gray)
-	NormalDesc = lipgloss.NewStyle().
-			Foreground(InactiveColor)
-
-	// SelectedDesc: 선택된 상태 설명 스타일 (light yellow)
-	SelectedDesc = lipgloss.NewStyle().
-			Foreground(HighlightColor)
-
-	// HelpStyle: 도움말 스타일 (light blue)
-	HelpStyle = lipgloss.NewStyle().
-			Foreground(HelpColor).
-			Padding(1, 0)
-
-	// ListTitleStyle: 리스트 제목 스타일 (green, bold)
-	ListTitleStyle = lipgloss.NewStyle().
-			Foreground(TitleColor).
-			Bold(true).
+	// Layout
+	StyleApp = lipgloss.NewStyle().
 			Padding(1, 2)
 
-	// EmptyStyle: 빈 상태 경고 스타일 (orange, bold)
-	EmptyStyle = lipgloss.NewStyle().
-			Foreground(WarningColor).
-			Bold(true).
-			Padding(2, 4)
+	// Header
+	StyleHeader = lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(ColorDim).
+			Padding(0, 1).
+			MarginBottom(1)
 
-	// HintStyle: 힌트 메시지 스타일 (light blue)
-	HintStyle = lipgloss.NewStyle().
-			Foreground(HelpColor).
-			Padding(1, 4)
+	StyleTabActive = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(ColorAccent).
+			Border(lipgloss.NormalBorder(), false, false, true, false).
+			BorderForeground(ColorAccent).
+			Padding(0, 2)
+
+	StyleTabInactive = lipgloss.NewStyle().
+				Foreground(ColorDim).
+				Padding(0, 2)
+
+	StyleFilterBar = lipgloss.NewStyle().
+			MarginTop(0).
+			Padding(0, 1).
+			Foreground(ColorDim)
+
+	StyleFilterActive = lipgloss.NewStyle().
+				Foreground(ColorWarning).
+				Bold(true)
+
+	// List Items
+	StyleItem = lipgloss.NewStyle().
+			PaddingLeft(2)
+
+	StyleItemRepo = lipgloss.NewStyle().
+			Bold(true).
+			Foreground(ColorForeground)
+
+	StyleItemPath = lipgloss.NewStyle().
+			Foreground(ColorDim).
+			Italic(true)
+
+	StyleItemSelected = lipgloss.NewStyle().
+				Border(lipgloss.NormalBorder(), false, false, false, true).
+				BorderForeground(ColorAccent).
+				PaddingLeft(1).
+				Foreground(ColorAccent)
+
+	// Status Badges
+	StyleBadgeDirty = lipgloss.NewStyle().
+			Foreground(ColorWarning).
+			SetString("●")
+
+	StyleBadgeClean = lipgloss.NewStyle().
+			Foreground(ColorSuccess).
+			SetString("✓")
+
+	StyleBadgeActive = lipgloss.NewStyle().
+				Foreground(ColorSuccess).
+				Bold(true).
+				SetString("⚡")
 )

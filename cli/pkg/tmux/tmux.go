@@ -2,6 +2,7 @@ package tmux
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -91,7 +92,7 @@ func SwitchClient(sessionName string) error {
 // AttachSession attaches to the session (if outside tmux).
 func AttachSession(sessionName string) error {
 	// Check if inside tmux
-	if isInsideTmux() {
+	if IsInsideTmux() {
 		return SwitchClient(sessionName)
 	}
 
@@ -104,8 +105,6 @@ func AttachSession(sessionName string) error {
 	return cmd.Run()
 }
 
-func isInsideTmux() bool {
-	// Check $TMUX env var
-	// In Go, os.Getenv("TMUX") != ""
-	return false // Simplified for now, caller should check env
+func IsInsideTmux() bool {
+	return os.Getenv("TMUX") != ""
 }

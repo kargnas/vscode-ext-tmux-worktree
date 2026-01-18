@@ -3,23 +3,18 @@ package ui
 import (
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/kargnas/tmux-worktree-tui/pkg/git"
 )
 
-type SortType int
+// --- Items ---
 
-const (
-	SortByName SortType = iota
-	SortByRecent
-	SortByActive
-)
-
-var sortNames = []string{"Name", "Recent", "Active"}
-
+// ProjectItem represents a git repository in the list.
 type ProjectItem struct {
 	Name          string
 	Path          string
@@ -31,202 +26,157 @@ type ProjectItem struct {
 	GitError      bool
 }
 
-func (p ProjectItem) Title() string       { return p.Name }
-func (p ProjectItem) Description() string { return p.Path }
-func (p ProjectItem) FilterValue() string { return p.Name }
+func (i ProjectItem) FilterValue() string { return i.Name + " " + i.Path }
 
-type ProjectDelegate struct {
-	ShowStatusColumn bool
-}
-
-func NewProjectDelegate() ProjectDelegate {
-	return ProjectDelegate{ShowStatusColumn: true}
-}
-
-func (d ProjectDelegate) Height() int                             { return 1 }
-func (d ProjectDelegate) Spacing() int                            { return 0 }
-func (d ProjectDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
-
-func (d ProjectDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	p, ok := listItem.(ProjectItem)
-	if !ok {
-		return
-	}
-
-	isSelected := index == m.Index()
-	str := d.renderItem(p, isSelected, m.Width())
-	fmt.Fprint(w, str)
-}
-
-func (d ProjectDelegate) renderItem(p ProjectItem, isSelected bool, width int) string {
-	indicator := "○"
-	if p.IsActive {
-		indicator = "●"
-	}
-
-	var indicatorStyled string
-	if p.IsActive {
-		indicatorStyled = ActiveIndicatorStyle.Render(indicator)
-	} else {
-		indicatorStyled = InactiveIndicatorStyle.Render(indicator)
-	}
-
-	name := p.Name
-	if len(name) > 20 {
-		name = name[:17] + "..."
-	}
-
-	var nameStyled string
-	if isSelected {
-		nameStyled = SelectedTitle.Render(name)
-	} else {
-		nameStyled = NormalTitle.Render(name)
-	}
-
-	wtCount := fmt.Sprintf("[%d]", p.WorktreeCount)
-	wtCountStyled := DimStyle.Render(wtCount)
-
-	var gitStatusStr string
-	if p.GitLoading {
-		gitStatusStr = LoadingStyle.Render("...")
-	} else if p.GitError {
-		gitStatusStr = ErrorStyle.Render("--")
-	} else if p.GitStatus != nil && p.GitStatus.IsDirty() {
-		total := p.GitStatus.Modified + p.GitStatus.Added + p.GitStatus.Untracked
-		gitStatusStr = DirtyStyle.Render(fmt.Sprintf("M:%d", total))
-	} else {
-		gitStatusStr = "     "
-	}
-
-	var timeStr string
-	if p.RecentTime.IsZero() {
-		timeStr = TimeStyle.Render("N/A")
-	} else {
-		timeStr = TimeStyle.Render(formatRelativeTimeShort(p.RecentTime))
-	}
-
-	return fmt.Sprintf("%s %-22s %s %s %s",
-		indicatorStyled,
-		nameStyled,
-		wtCountStyled,
-		gitStatusStr,
-		timeStr,
-	)
-}
-
-func formatRelativeTimeShort(t time.Time) string {
-	if t.IsZero() {
-		return "N/A"
-	}
-
-	duration := time.Since(t)
-
-	if duration < time.Minute {
-		return "now"
-	}
-	if duration < time.Hour {
-		return fmt.Sprintf("%dm", int(duration.Minutes()))
-	}
-	if duration < 24*time.Hour {
-		return fmt.Sprintf("%dh", int(duration.Hours()))
-	}
-	if duration < 7*24*time.Hour {
-		return fmt.Sprintf("%dd", int(duration.Hours()/24))
-	}
-	if duration < 30*24*time.Hour {
-		return fmt.Sprintf("%dw", int(duration.Hours()/24/7))
-	}
-	return fmt.Sprintf("%dmo", int(duration.Hours()/24/30))
-}
-
+// WorktreeItem represents a specific worktree (or the main repo) in the list.
 type WorktreeItem struct {
-	Slug       string
+	Slug       string // Display name (e.g. "main", "feature-x")
 	Branch     string
 	Path       string
 	IsActive   bool
+	IsRoot     bool
 	RecentTime time.Time
 	GitStatus  *git.GitStatus
 	GitLoading bool
 	GitError   bool
-	Worktree   *git.Worktree
+	Worktree   *git.Worktree // Underlying data
 }
 
-func (w WorktreeItem) Title() string       { return w.Slug }
-func (w WorktreeItem) Description() string { return w.Path }
-func (w WorktreeItem) FilterValue() string { return w.Slug }
+func (i WorktreeItem) FilterValue() string { return i.Slug + " " + i.Branch }
 
-type WorktreeDelegate struct{}
+// --- Delegate ---
 
-func NewWorktreeDelegate() WorktreeDelegate {
-	return WorktreeDelegate{}
+type Delegate struct {
+	Styles DelegateStyles
 }
 
-func (d WorktreeDelegate) Height() int                             { return 1 }
-func (d WorktreeDelegate) Spacing() int                            { return 0 }
-func (d WorktreeDelegate) Update(_ tea.Msg, _ *list.Model) tea.Cmd { return nil }
+type DelegateStyles struct {
+	Selected lipgloss.Style
+	Normal   lipgloss.Style
+	Dim      lipgloss.Style
+}
 
-func (d WorktreeDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	wt, ok := listItem.(WorktreeItem)
-	if !ok {
-		return
+func NewDelegate() Delegate {
+	return Delegate{
+		Styles: DelegateStyles{
+			Selected: lipgloss.NewStyle().
+				Border(lipgloss.NormalBorder(), false, false, false, true).
+				BorderForeground(ColorAccent).
+				Foreground(ColorAccent).
+				PaddingLeft(1),
+			Normal: lipgloss.NewStyle().
+				PaddingLeft(2),
+			Dim: lipgloss.NewStyle().
+				Foreground(ColorDim),
+		},
 	}
+}
+
+func (d Delegate) Height() int {
+	return 2 // 2 lines per item for better info density
+}
+
+func (d Delegate) Spacing() int {
+	return 0
+}
+
+func (d Delegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
+	return nil
+}
+
+func (d Delegate) Render(w io.Writer, m list.Model, index int, item list.Item) {
+	var (
+		titleStr    string
+		descStr     string
+		statusBadge string
+		activeBadge string
+	)
 
 	isSelected := index == m.Index()
-	str := d.renderItem(wt, isSelected)
-	fmt.Fprint(w, str)
+
+	switch i := item.(type) {
+	case ProjectItem:
+		// Title: Name + Active Badge
+		titleStr = i.Name
+		if i.IsActive {
+			activeBadge = " " + StyleBadgeActive.Render()
+		}
+
+		// Desc: Path • Worktrees • Status
+		parts := []string{shortenPath(i.Path)}
+		parts = append(parts, fmt.Sprintf("%d wts", i.WorktreeCount))
+
+		if i.GitLoading {
+			statusBadge = d.Styles.Dim.Render("…")
+		} else if i.GitError {
+			statusBadge = lipgloss.NewStyle().Foreground(ColorError).Render("!")
+		} else if i.GitStatus != nil && i.GitStatus.IsDirty() {
+			statusBadge = StyleBadgeDirty.Render()
+			// Add detail: M:1 A:0 ...
+			stats := []string{}
+			if i.GitStatus.Modified > 0 {
+				stats = append(stats, fmt.Sprintf("M:%d", i.GitStatus.Modified))
+			}
+			if i.GitStatus.Added > 0 {
+				stats = append(stats, fmt.Sprintf("A:%d", i.GitStatus.Added))
+			}
+			if i.GitStatus.Untracked > 0 {
+				stats = append(stats, fmt.Sprintf("?:%d", i.GitStatus.Untracked))
+			}
+			if len(stats) > 0 {
+				parts = append(parts, strings.Join(stats, " "))
+			}
+		} else {
+			statusBadge = StyleBadgeClean.Render()
+		}
+
+		descStr = strings.Join(parts, " • ")
+
+	case WorktreeItem:
+		// Title: Slug (Active)
+		titleStr = i.Slug
+		if i.IsRoot {
+			titleStr += " (root)"
+		}
+		if i.IsActive {
+			activeBadge = " " + StyleBadgeActive.Render()
+		}
+
+		// Desc: Branch • Status
+		parts := []string{i.Branch}
+
+		if i.GitLoading {
+			statusBadge = d.Styles.Dim.Render("…")
+		} else if i.GitError {
+			statusBadge = lipgloss.NewStyle().Foreground(ColorError).Render("!")
+		} else if i.GitStatus != nil && i.GitStatus.IsDirty() {
+			statusBadge = StyleBadgeDirty.Render()
+		} else {
+			statusBadge = StyleBadgeClean.Render()
+		}
+
+		descStr = strings.Join(parts, " • ")
+	}
+
+	// Render
+	var title, desc string
+
+	if isSelected {
+		title = d.Styles.Selected.Render(titleStr + activeBadge + " " + statusBadge)
+		desc = d.Styles.Selected.Copy().Foreground(ColorDim).Render(descStr)
+	} else {
+		title = d.Styles.Normal.Render(titleStr + activeBadge + " " + statusBadge)
+		desc = d.Styles.Normal.Copy().Foreground(ColorDim).Render(descStr)
+	}
+
+	fmt.Fprintf(w, "%s\n%s", title, desc)
 }
 
-func (d WorktreeDelegate) renderItem(wt WorktreeItem, isSelected bool) string {
-	indicator := "○"
-	if wt.IsActive {
-		indicator = "●"
+func shortenPath(p string) string {
+	// Simple shortener
+	parts := strings.Split(p, "/")
+	if len(parts) > 3 {
+		return ".../" + strings.Join(parts[len(parts)-2:], "/")
 	}
-
-	var indicatorStyled string
-	if wt.IsActive {
-		indicatorStyled = ActiveIndicatorStyle.Render(indicator)
-	} else {
-		indicatorStyled = InactiveIndicatorStyle.Render(indicator)
-	}
-
-	slug := wt.Slug
-	if len(slug) > 20 {
-		slug = slug[:17] + "..."
-	}
-
-	var slugStyled string
-	if isSelected {
-		slugStyled = SelectedTitle.Render(slug)
-	} else {
-		slugStyled = NormalTitle.Render(slug)
-	}
-
-	branchStyled := DimStyle.Render(fmt.Sprintf("[%s]", wt.Branch))
-
-	var gitStatusStr string
-	if wt.GitLoading {
-		gitStatusStr = LoadingStyle.Render("...")
-	} else if wt.GitError {
-		gitStatusStr = ErrorStyle.Render("--")
-	} else if wt.GitStatus != nil && wt.GitStatus.IsDirty() {
-		total := wt.GitStatus.Modified + wt.GitStatus.Added + wt.GitStatus.Untracked
-		gitStatusStr = DirtyStyle.Render(fmt.Sprintf("M:%d", total))
-	} else {
-		gitStatusStr = "     "
-	}
-
-	var timeStr string
-	if wt.RecentTime.IsZero() {
-		timeStr = TimeStyle.Render("N/A")
-	} else {
-		timeStr = TimeStyle.Render(formatRelativeTimeShort(wt.RecentTime))
-	}
-
-	return fmt.Sprintf("%s %-22s %s %s %s",
-		indicatorStyled,
-		slugStyled,
-		branchStyled,
-		gitStatusStr,
-		timeStr,
-	)
+	return p
 }
