@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -36,13 +37,18 @@ func ListSessions() ([]Session, error) {
 
 		name := parts[0]
 
+		windows := 1
+		if w, err := strconv.Atoi(parts[1]); err == nil {
+			windows = w
+		}
+
 		// Get workdir for each session
 		// This is slow if many sessions, but necessary for correct matching
 		workdir, _ := GetSessionWorkdir(name)
 
 		sessions = append(sessions, Session{
 			Name:     name,
-			Windows:  1, // Simple parsing, or parse parts[1]
+			Windows:  windows,
 			Attached: parts[2] == "1",
 			Workdir:  workdir,
 		})

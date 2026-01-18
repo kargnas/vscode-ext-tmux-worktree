@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
@@ -13,6 +15,7 @@ import (
 	"github.com/kargnas/tmux-worktree-tui/pkg/discovery"
 	"github.com/kargnas/tmux-worktree-tui/pkg/git"
 	"github.com/kargnas/tmux-worktree-tui/pkg/naming"
+	"github.com/kargnas/tmux-worktree-tui/pkg/recent"
 	"github.com/kargnas/tmux-worktree-tui/pkg/tmux"
 )
 
@@ -33,6 +36,8 @@ type Item struct {
 	Windows     int
 	IsAttached  bool
 	IsDirty     bool
+	HasSession  bool
+	RecentTime  time.Time
 	Type        ItemType
 }
 
@@ -53,10 +58,19 @@ const (
 	TabSessions
 )
 
+type SortType int
+
+const (
+	SortByName SortType = iota
+	SortByRecent
+	SortByActive
+)
+
 type Model struct {
 	list        list.Model
 	tabs        []string
 	activeTab   Tab
+	sortType    SortType
 	width       int
 	height      int
 	loading     bool
@@ -79,14 +93,14 @@ func NewModel() Model {
 	s.Spinner = spinner.Dot
 	s.Style = spinnerStyle
 
-	// Initialize list with default delegate
 	delegate := NewItemDelegate()
 	l := list.New([]list.Item{}, delegate, 0, 0)
 	l.Title = "Projects"
 	l.SetShowHelp(false)
-	l.SetShowStatusBar(false) // We'll render our own custom status bar
-	l.SetShowTitle(false)     // We'll render our own header
+	l.SetShowStatusBar(false)
+	l.SetShowTitle(false)
 	l.DisableQuitKeybindings()
+	l.Filter = fuzzyFilter
 
 	return Model{
 		list:        l,
@@ -148,6 +162,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.filterDirty = !m.filterDirty
 			cmds = append(cmds, m.refreshList())
 
+		case key.Matches(msg, key.NewBinding(key.WithKeys("s"))):
+			m.sortType = (m.sortType + 1) % 3
+			cmds = append(cmds, m.refreshList())
+
 		case key.Matches(msg, key.NewBinding(key.WithKeys("enter"))):
 			if i, ok := m.list.SelectedItem().(Item); ok {
 				return m.selectItem(i)
@@ -191,10 +209,33 @@ func (m *Model) refreshList() tea.Cmd {
 		source = m.allSessions
 	}
 
+	var filtered []Item
 	for _, item := range source {
 		if m.filterDirty && !item.IsDirty {
 			continue
 		}
+		filtered = append(filtered, item)
+	}
+
+	switch m.sortType {
+	case SortByName:
+		sort.Slice(filtered, func(i, j int) bool {
+			return filtered[i].TitleStr < filtered[j].TitleStr
+		})
+	case SortByRecent:
+		sort.Slice(filtered, func(i, j int) bool {
+			return filtered[i].RecentTime.After(filtered[j].RecentTime)
+		})
+	case SortByActive:
+		sort.Slice(filtered, func(i, j int) bool {
+			if filtered[i].HasSession != filtered[j].HasSession {
+				return filtered[i].HasSession
+			}
+			return filtered[i].TitleStr < filtered[j].TitleStr
+		})
+	}
+
+	for _, item := range filtered {
 		items = append(items, item)
 	}
 
@@ -252,9 +293,8 @@ func (m Model) viewHeader() string {
 }
 
 func (m Model) viewStatusBar() string {
-	// Simple status bar
-	// Keys: Tab: Switch, F: Filter, Enter: Select, q: Quit
-	help := "Tab: Switch • f: Filter • Enter: Select • r: Reload • q: Quit"
+	sortLabel := []string{"Name", "Recent", "Active"}[m.sortType]
+	help := fmt.Sprintf("Tab: Switch • f: Filter • s: Sort(%s) • Enter: Select • r: Reload • q: Quit", sortLabel)
 	return statusBarStyle.Render(help)
 }
 
@@ -275,9 +315,9 @@ func loadDataCmd() tea.Cmd {
 		repos := discovery.FindGitRepos(cfg.SearchPaths, cfg.Depth)
 		tmuxSessions, _ := tmux.ListSessions()
 
-		sessionMap := make(map[string]bool)
+		sessionMap := make(map[string]tmux.Session)
 		for _, s := range tmuxSessions {
-			sessionMap[s.Name] = true
+			sessionMap[s.Name] = s
 		}
 
 		var repoItems []Item
@@ -304,18 +344,23 @@ func loadDataCmd() tea.Cmd {
 					title = "(root) " + repoName
 				}
 
+				session, hasSession := sessionMap[sessionName]
+				recentTime := recent.GetCombinedRecentTime(wt.Path)
 				item := Item{
 					TitleStr:    title,
 					DescStr:     fmt.Sprintf("%s • %s", wt.Branch, statusStr),
 					Path:        wt.Path,
 					SessionName: sessionName,
-					IsAttached:  sessionMap[sessionName],
+					IsAttached:  hasSession && session.Attached,
 					IsDirty:     isDirty,
+					Windows:     session.Windows,
+					HasSession:  hasSession,
+					RecentTime:  recentTime,
 					Type:        ItemTypeRepo,
 				}
 				repoItems = append(repoItems, item)
 
-				if sessionMap[sessionName] {
+				if hasSession {
 					item.Type = ItemTypeSession
 					sessionItems = append(sessionItems, item)
 				}
@@ -331,4 +376,45 @@ func loadDataCmd() tea.Cmd {
 			sessions: sessionItems,
 		}
 	}
+}
+
+func fuzzyFilter(term string, targets []string) []list.Rank {
+	term = strings.ToLower(term)
+	var ranks []list.Rank
+
+	for i, target := range targets {
+		targetLower := strings.ToLower(target)
+
+		if strings.Contains(targetLower, term) {
+			ranks = append(ranks, list.Rank{Index: i, MatchedIndexes: []int{}})
+			continue
+		}
+
+		if matchesFirstLetters(term, targetLower) {
+			ranks = append(ranks, list.Rank{Index: i, MatchedIndexes: []int{}})
+		}
+	}
+
+	return ranks
+}
+
+func matchesFirstLetters(query, target string) bool {
+	parts := strings.FieldsFunc(target, func(r rune) bool {
+		return r == '-' || r == '_' || r == '/' || r == '.'
+	})
+
+	if len(query) > len(parts) {
+		return false
+	}
+
+	for i, char := range query {
+		if i >= len(parts) {
+			return false
+		}
+		if len(parts[i]) == 0 || rune(parts[i][0]) != char {
+			return false
+		}
+	}
+
+	return true
 }

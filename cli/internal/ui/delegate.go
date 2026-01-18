@@ -17,11 +17,11 @@ func NewItemDelegate() list.ItemDelegate {
 }
 
 func (d ItemDelegate) Height() int {
-	return 3 // Title + Info + Spacing
+	return 2 // Tight 2-line layout
 }
 
 func (d ItemDelegate) Spacing() int {
-	return 0
+	return 0 // No extra spacing between items
 }
 
 func (d ItemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd {
@@ -34,68 +34,71 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		return
 	}
 
-	// Styles
-	titleStyle := lipgloss.NewStyle().Foreground(textColor).Bold(true)
-	descStyle := lipgloss.NewStyle().Foreground(subtleColor)
-
+	// 1. Determine Base Style (Normal vs Selected)
+	var baseStyle lipgloss.Style
 	if index == m.Index() {
-		titleStyle = titleStyle.Foreground(primaryColor)
-		descStyle = descStyle.Foreground(secondaryColor)
+		baseStyle = selectedItemStyle
+	} else {
+		baseStyle = itemStyle
 	}
 
-	// Line 1: Repo Name / Session Name
-	title := i.TitleStr
-	if i.Type == ItemTypeRepo {
-		title = fmt.Sprintf("📁 %s", title)
+	// 2. Prepare Content
+	// Icon
+	var icon string
+	if i.Type == ItemTypeSession {
+		icon = "⚡"
+	} else if i.HasSession {
+		icon = "⚡"
 	} else {
-		title = fmt.Sprintf("Tmux: %s", title)
+		icon = "📁"
 	}
 
-	// Line 2: Details
-	// Branch/Session Name · Pane Count · Last Active Time
-	// We don't have "Last Active Time" in Item yet, assuming simple layout for now.
-	// For repo: Branch (if available) or Path
-	// For session: Windows count
+	// Line 1: Title + Info + Status
+	// Title
+	title := repoNameStyle.Render(i.TitleStr)
 
-	var details []string
+	// Info (Branch or Windows)
+	var info string
 	if i.Type == ItemTypeRepo {
-		details = append(details, i.Path)
+		// Extract branch from DescStr if possible, or just use it
+		// DescStr in model.go is "Branch • Status"
+		// We'll parse it or just assume the first part is branch.
+		// Actually, let's use the DescStr but clean it up.
+		parts := strings.Split(i.DescStr, "•")
+		if len(parts) > 0 {
+			info = strings.TrimSpace(parts[0]) // Branch name
+		}
 	} else {
-		details = append(details, fmt.Sprintf("%d windows", i.Windows))
+		info = fmt.Sprintf("%d wins", i.Windows)
 		if i.IsAttached {
-			details = append(details, "Attached")
+			info += " • Attached"
 		}
 	}
+	infoRendered := statusStyle.Render(info)
 
-	detailStr := strings.Join(details, " · ")
-
-	// Line 3: Git Status (Conditional)
-	var statusStr string
+	// Git Status Badge
+	var statusBadge string
 	if i.IsDirty {
-		statusStr = "Dirty" // Placeholder, real status needed
-		if index == m.Index() {
-			statusStr = lipgloss.NewStyle().Foreground(errorColor).Render("M:? A:? D:? (Dirty)")
-		} else {
-			statusStr = lipgloss.NewStyle().Foreground(warningColor).Render("Modified")
-		}
+		statusBadge = statusDirtyStyle.Render("● Modified")
 	}
 
-	// Render
-	var body string
-	if statusStr != "" {
-		body = fmt.Sprintf("%s\n%s\n%s", titleStyle.Render(title), descStyle.Render(detailStr), statusStr)
-	} else {
-		body = fmt.Sprintf("%s\n%s", titleStyle.Render(title), descStyle.Render(detailStr))
-	}
+	// Construct Line 1
+	// [Icon] [Title]  [Info]        [Status]
+	// To do right alignment properly in a list item is tricky without fixed width.
+	// We'll just stack them left-aligned for now, but clean.
+	line1 := fmt.Sprintf("%s %s  %s%s", icon, title, infoRendered, statusBadge)
 
-	// Border/Padding for selection
-	container := lipgloss.NewStyle().PaddingLeft(2)
-	if index == m.Index() {
-		container = container.
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(primaryColor).
-			PaddingLeft(1)
-	}
+	// Line 2: Path (Dimmed)
+	// Truncate path if too long? For now just render.
+	path := pathStyle.Render(i.Path)
 
-	fmt.Fprint(w, container.Render(body))
+	// 3. Render Final Block
+	// We use JoinVertical to stack lines
+	content := lipgloss.JoinVertical(lipgloss.Left,
+		line1,
+		path,
+	)
+
+	// Apply selection box style
+	fmt.Fprint(w, baseStyle.Render(content))
 }
