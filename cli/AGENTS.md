@@ -1,7 +1,17 @@
 # tmux-worktree-tui
 
+**공식 명칭**: `tmux-worktree-tui`  
+**실행 명령어**: `tmux-worktree-tui`
+
 This project is a TUI application to manage tmux sessions for Git Worktrees.
 It **MUST** follow the exact same naming conventions as the `vscode-tmux-worktree` extension to ensure compatibility.
+
+## 📦 Installation
+
+```bash
+cd cli && go install ./...
+# Binary: ~/go/bin/tmux-worktree-tui
+```
 
 ## 📏 Naming Conventions (STRICT)
 
