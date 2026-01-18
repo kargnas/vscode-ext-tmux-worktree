@@ -14,6 +14,15 @@ This project provides a seamless workflow for developers using `git worktree` an
 - **Worktree Integration**: Create new worktrees and associated sessions in one go.
 - **CLI Tool**: Includes a TUI (`tmux-worktree-tui`) for managing sessions from the terminal.
 
+## 💡 Use Case
+
+**Persistent AI Coding Sessions**
+
+Run AI coding agents (like `opencode`, `claudecode`, `gemini-cli`) inside tmux sessions. This ensures your working context and agent history are never lost, even if your SSH connection drops or you close VS Code.
+
+- **Always On**: AI agents keep running in the background.
+- **Anywhere Access**: Seamlessly resume your coding session from any device (e.g., using **Termux** on Android) without losing state.
+
 ## 🛠 Tech Stack
 
 - **Extension**: TypeScript, VS Code Extension API.
