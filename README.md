@@ -2,6 +2,8 @@
 
 **Manage tmux sessions with git worktrees directly from VS Code.**
 
+![TMUX Worktree Screenshot](docs/screenshot.png)
+
 This project provides a seamless workflow for developers using `git worktree` and `tmux`. It allows you to switch between worktrees and their corresponding tmux sessions easily.
 
 ## ✨ Features
