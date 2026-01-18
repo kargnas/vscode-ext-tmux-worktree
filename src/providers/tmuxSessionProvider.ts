@@ -115,7 +115,6 @@ export class GitStatusItem extends TmuxItem {
         
         this.contextValue = 'gitStatus';
         this.iconPath = new vscode.ThemeIcon('git-merge');
-        this.description = `(${status.gitDirty} files)`;
     }
 }
 function getClassificationOrder(classification: Classification): number {
@@ -214,10 +213,6 @@ export class TmuxSessionDetailItem extends TmuxItem {
     if (session.status.classification !== 'orphan') {
         parts.push(`${session.status.panes}p`);
         parts.push(formatLastActive(session.status.lastActive));
-    }
-    
-    if (session.status.gitDirty > 0) {
-        parts.push(`●${session.status.gitDirty}`);
     }
     
     if (session.status.classification === 'orphan') parts.push('⚠ orphan');
@@ -320,6 +315,7 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
   private _onDidChangeTreeData = new vscode.EventEmitter<TmuxItem | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private _filter: FilterType = 'all';
+  private _error: string | undefined;
 
   refresh(): void { this._onDidChangeTreeData.fire(undefined); }
   setFilter(filter: string): void { this._filter = filter as FilterType; }
@@ -327,7 +323,14 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
   getTreeItem(element: TmuxItem): vscode.TreeItem { return element; }
 
   async getChildren(element?: TmuxItem): Promise<TmuxItem[]> {
-    if (!element) return this.getRepoGroups();
+    if (!element) {
+        if (this._error) {
+            const errorItem = new TmuxItem(`Error: ${this._error}`, vscode.TreeItemCollapsibleState.None);
+            errorItem.iconPath = new vscode.ThemeIcon('error', new vscode.ThemeColor('charts.red'));
+            return [errorItem];
+        }
+        return this.getRepoGroups();
+    }
     
     if (element instanceof RepoGroupItem) {
         return this.getSessionsForRepo(element.repoName, element.repoRoot);
@@ -361,133 +364,130 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
   }
 
   private async getSessionsForRepo(repoName: string, repoRoot: string): Promise<TmuxItem[]> {
-    const [allSessions, worktrees] = await Promise.all([
-        listSessions(),
-        listWorktrees(repoRoot)
-    ]);
+    try {
+        const [allSessions, worktrees] = await Promise.all([
+            listSessions(),
+            listWorktrees(repoRoot)
+        ]);
+        this._error = undefined; // 성공 시 에러 초기화
 
-    const repoPrefix = `${repoName}_`;
-    const repoSessions = allSessions.filter(s => s.name.startsWith(repoPrefix));
+        const repoPrefix = `${repoName}_`;
+        const repoSessions = allSessions.filter(s => s.name.startsWith(repoPrefix));
 
-    for (const s of repoSessions) s.workdir = await getSessionWorkdir(s.name);
+        for (const s of repoSessions) s.workdir = await getSessionWorkdir(s.name);
 
-    const pathMap = new Map<string, { worktree?: Worktree, sessions: SessionWithStatus[] }>();
+        const pathMap = new Map<string, { worktree?: Worktree, sessions: SessionWithStatus[] }>();
 
-    for (const wt of worktrees) {
-        // 경로 정규화 (trailing slash 제거 등)
-        // 하지만 git output과 tmux output이 정확히 일치해야 함.
-        // path.normalize 사용
-        const normalizedPath = path.normalize(wt.path);
-        pathMap.set(normalizedPath, { worktree: wt, sessions: [] });
-    }
-
-    for (const session of repoSessions) {
-        const workdir = session.workdir ? path.normalize(session.workdir) : undefined;
-        
-        const status = await getSessionStatus(session.name, workdir);
-        
-        let entry = workdir ? pathMap.get(workdir) : undefined;
-        
-        if (!entry) {
-            status.classification = 'orphan';
-            entry = { sessions: [] };
-            pathMap.set(workdir || `orphan:${session.name}`, entry);
+        for (const wt of worktrees) {
+            const normalizedPath = path.normalize(wt.path);
+            pathMap.set(normalizedPath, { worktree: wt, sessions: [] });
         }
 
-        const slug = session.name.substring(repoPrefix.length) || 'main';
-        
-        entry.sessions.push({
-            ...session,
-            status,
-            worktreePath: workdir,
-            slug
-        });
-    }
-
-    const items: TmuxItem[] = [];
-
-    for (const [pathKey, entry] of pathMap.entries()) {
-        const { worktree, sessions } = entry;
-
-        if (sessions.length === 0 && worktree) {
-            let slug = path.basename(worktree.path);
-            if (worktree.isMain && !worktree.path.includes('.worktrees')) {
-                slug = 'main';
-            } else if (slug === repoName) {
-                slug = 'main';
-            }
-            const sessionName = `${repoName}_${slug}`;
-            items.push(new InactiveWorktreeItem(worktree, repoName, sessionName));
-            continue;
-        }
-
-        if (sessions.length === 1) {
-            items.push(new TmuxSessionItem(sessions[0], repoName, worktree));
-            continue;
-        }
-
-        if (sessions.length > 1) {
-            let label = 'Unknown';
-            if (worktree) {
-                label = path.basename(worktree.path);
-                if (worktree.isMain && !worktree.path.includes('.worktrees')) label = '(root)';
-                else if (label === repoName) label = '(root)';
-            } else {
-                label = sessions[0].slug; 
-                if (label === 'main') label = '(root)';
-            }
-
-            items.push(new TmuxWorktreeGroupItem(label, repoName, sessions, worktree));
-        }
-    }
-
-    // 중복 제거: 같은 경로를 가리키는 아이템이 있으면 Active 세션 우선
-    // 예: main worktree에 세션이 있으면, 같은 경로의 InactiveWorktreeItem은 제거
-    const pathToActiveSession = new Map<string, TmuxItem>();
-    const pathToInactive = new Map<string, TmuxItem>();
-    const otherItems: TmuxItem[] = [];
-
-    for (const item of items) {
-        let itemPath: string | undefined;
-        
-        if (item instanceof TmuxSessionItem) {
-            itemPath = item.session.worktreePath;
-        } else if (item instanceof InactiveWorktreeItem) {
-            itemPath = item.worktree.path;
-        } else if (item instanceof TmuxWorktreeGroupItem) {
-            // 그룹은 children의 첫 번째 세션 경로 사용
-            itemPath = item.children[0]?.session.worktreePath;
-        }
-
-        if (itemPath) {
-            const normalizedPath = path.normalize(itemPath);
+        for (const session of repoSessions) {
+            const workdir = session.workdir ? path.normalize(session.workdir) : undefined;
             
-            if (item instanceof InactiveWorktreeItem) {
-                // Inactive는 나중에 처리 (Active가 없을 때만 추가)
-                if (!pathToInactive.has(normalizedPath)) {
-                    pathToInactive.set(normalizedPath, item);
+            const status = await getSessionStatus(session.name, workdir);
+            
+            let entry = workdir ? pathMap.get(workdir) : undefined;
+            
+            if (!entry) {
+                status.classification = 'orphan';
+                entry = { sessions: [] };
+                pathMap.set(workdir || `orphan:${session.name}`, entry);
+            }
+
+            const slug = session.name.substring(repoPrefix.length) || 'main';
+            
+            entry.sessions.push({
+                ...session,
+                status,
+                worktreePath: workdir,
+                slug
+            });
+        }
+
+        const items: TmuxItem[] = [];
+
+        for (const [pathKey, entry] of pathMap.entries()) {
+            const { worktree, sessions } = entry;
+
+            if (sessions.length === 0 && worktree) {
+                let slug = path.basename(worktree.path);
+                if (worktree.isMain && !worktree.path.includes('.worktrees')) {
+                    slug = 'main';
+                } else if (slug === repoName) {
+                    slug = 'main';
+                }
+                const sessionName = `${repoName}_${slug}`;
+                items.push(new InactiveWorktreeItem(worktree, repoName, sessionName));
+                continue;
+            }
+
+            if (sessions.length === 1) {
+                items.push(new TmuxSessionItem(sessions[0], repoName, worktree));
+                continue;
+            }
+
+            if (sessions.length > 1) {
+                let label = 'Unknown';
+                if (worktree) {
+                    label = path.basename(worktree.path);
+                    if (worktree.isMain && !worktree.path.includes('.worktrees')) label = '(root)';
+                    else if (label === repoName) label = '(root)';
+                } else {
+                    label = sessions[0].slug; 
+                    if (label === 'main') label = '(root)';
+                }
+
+                items.push(new TmuxWorktreeGroupItem(label, repoName, sessions, worktree));
+            }
+        }
+
+        const pathToActiveSession = new Map<string, TmuxItem>();
+        const pathToInactive = new Map<string, TmuxItem>();
+        const otherItems: TmuxItem[] = [];
+
+        for (const item of items) {
+            let itemPath: string | undefined;
+            
+            if (item instanceof TmuxSessionItem) {
+                itemPath = item.session.worktreePath;
+            } else if (item instanceof InactiveWorktreeItem) {
+                itemPath = item.worktree.path;
+            } else if (item instanceof TmuxWorktreeGroupItem) {
+                itemPath = item.children[0]?.session.worktreePath;
+            }
+
+            if (itemPath) {
+                const normalizedPath = path.normalize(itemPath);
+                
+                if (item instanceof InactiveWorktreeItem) {
+                    if (!pathToInactive.has(normalizedPath)) {
+                        pathToInactive.set(normalizedPath, item);
+                    }
+                } else {
+                    pathToActiveSession.set(normalizedPath, item);
                 }
             } else {
-                // Active 세션 또는 그룹
-                pathToActiveSession.set(normalizedPath, item);
+                otherItems.push(item);
             }
-        } else {
-            otherItems.push(item);
         }
-    }
 
-    // Active 세션이 없는 경로의 Inactive만 추가
-    const uniqueItems: TmuxItem[] = [...pathToActiveSession.values()];
-    
-    for (const [inactivePath, inactiveItem] of pathToInactive.entries()) {
-        if (!pathToActiveSession.has(inactivePath)) {
-            uniqueItems.push(inactiveItem);
+        const uniqueItems: TmuxItem[] = [...pathToActiveSession.values()];
+        
+        for (const [inactivePath, inactiveItem] of pathToInactive.entries()) {
+            if (!pathToActiveSession.has(inactivePath)) {
+                uniqueItems.push(inactiveItem);
+            }
         }
-    }
-    
-    uniqueItems.push(...otherItems);
+        
+        uniqueItems.push(...otherItems);
 
-    return this.sortAndFilter(uniqueItems);
+        return this.sortAndFilter(uniqueItems);
+    } catch (err) {
+        this._error = err instanceof Error ? err.message : String(err);
+        return [];
+    }
   }
 
   private sortAndFilter(items: TmuxItem[]): TmuxItem[] {

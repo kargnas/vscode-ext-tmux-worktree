@@ -49,6 +49,24 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   autoAttachOnStartup();
+
+  // 이벤트 기반 갱신
+  context.subscriptions.push(
+    vscode.window.onDidOpenTerminal(() => sessionProvider.refresh()),
+    vscode.window.onDidCloseTerminal(() => sessionProvider.refresh()),
+    vscode.window.onDidChangeWindowState((e) => {
+        if (e.focused) sessionProvider.refresh();
+    })
+  );
+
+  // 폴링 기반 갱신 (30초)
+  const intervalId = setInterval(() => {
+      sessionProvider.refresh();
+  }, 30000);
+
+  context.subscriptions.push({
+      dispose: () => clearInterval(intervalId)
+  });
 }
 
 export function deactivate() {}
