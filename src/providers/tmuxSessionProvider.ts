@@ -218,7 +218,7 @@ export class TmuxSessionDetailItem extends TmuxItem {
     if (session.status.classification === 'orphan') parts.push('⚠ orphan');
     
     super(parts.join(' · '), vscode.TreeItemCollapsibleState.None, repoName, session.name);
-    this.contextValue = 'tmuxSession';
+    this.contextValue = isRoot ? 'tmuxSessionRoot' : 'tmuxSession';
     this.iconPath = new vscode.ThemeIcon('symbol-constant');
     
     this.command = {
@@ -299,8 +299,7 @@ export class InactiveWorktreeDetailItem extends TmuxItem {
     const label = `${branch} · stopped`;
     
     super(label, vscode.TreeItemCollapsibleState.None, repoName, targetSessionName);
-    
-    this.contextValue = 'tmuxSession';
+    this.contextValue = isRoot ? 'tmuxSessionRoot' : 'tmuxSession';
     this.iconPath = new vscode.ThemeIcon('symbol-constant');
     
     this.command = {

@@ -62,7 +62,7 @@ func scan(root string, depth int) []string {
 
 	isRepo := false
 	for _, entry := range entries {
-		if entry.Name() == ".git" {
+		if entry.Name() == ".git" && entry.IsDir() {
 			isRepo = true
 			break
 		}
