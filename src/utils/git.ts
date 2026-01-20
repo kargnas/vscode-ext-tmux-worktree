@@ -120,7 +120,14 @@ export async function isSlugTaken(slug: string, repoName: string, repoRoot: stri
 export async function addWorktree(repoRoot: string, slug: string, baseBranch: string): Promise<string> {
   const worktreesDir = await ensureWorktreesDir(repoRoot);
   const worktreePath = path.join(worktreesDir, slug);
-  await exec(`git worktree add "${worktreePath}" -b task/${slug} ${baseBranch}`, { cwd: repoRoot });
+  const branchName = `task/${slug}`;
+  
+  await exec(`git worktree add "${worktreePath}" -b ${branchName} ${baseBranch}`, { cwd: repoRoot });
+  
+  // 원격에 브랜치가 없어도 upstream 설정 (push 시 자동으로 같은 이름 브랜치로 push되도록)
+  await exec(`git config branch.${branchName}.remote origin`, { cwd: repoRoot });
+  await exec(`git config branch.${branchName}.merge refs/heads/${branchName}`, { cwd: repoRoot });
+  
   return worktreePath;
 }
 
