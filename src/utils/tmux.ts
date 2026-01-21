@@ -88,7 +88,8 @@ export function attachSession(sessionName: string, cwd?: string, location: vscod
     location,
     iconPath: new vscode.ThemeIcon('server')
   });
-  terminal.sendText(`tmux attach -t "${sessionName}"`);
+  // exec로 실행하면 tmux가 종료될 때 쉘도 자동으로 종료됨
+  terminal.sendText(`exec tmux attach -t "${sessionName}"`);
   terminal.show();
   return terminal;
 }
