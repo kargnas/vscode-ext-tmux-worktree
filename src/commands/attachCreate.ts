@@ -1,13 +1,13 @@
 import * as vscode from 'vscode';
 import { getRepoRoot, getRepoName } from '../utils/git';
-import { isTmuxInstalled, listSessions, getSessionWorkdir, attachSession, createSession, setSessionWorkdir } from '../utils/tmux';
+import { isTmuxInstalled, listSessions, getSessionWorkdir, attachSession, createSession, setSessionWorkdir, sanitizeSessionName } from '../utils/tmux';
 import { InactiveWorktreeItem, InactiveWorktreeDetailItem, TmuxItem } from '../providers/tmuxSessionProvider';
 
 async function findSessionsForWorkspace(repoRoot: string): Promise<string[]> {
   const sessions = await listSessions();
   const matchingSessions: string[] = [];
   const repoName = getRepoName(repoRoot);
-  const repoPrefix = `${repoName}_`;
+  const repoPrefix = `${sanitizeSessionName(repoName)}_`;
 
   for (const session of sessions) {
     if (!session.name.startsWith(repoPrefix)) continue;

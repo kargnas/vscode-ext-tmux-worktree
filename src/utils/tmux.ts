@@ -55,12 +55,20 @@ export async function setSessionWorkdir(sessionName: string, workdir: string): P
 }
 
 function getShortName(sessionName: string): string {
-    // repoName_slug 형식에서 slug만 추출
     const parts = sessionName.split('_');
     if (parts.length > 1) {
         return parts.slice(1).join('_');
     }
     return sessionName;
+}
+
+export function sanitizeSessionName(name: string): string {
+    // tmux 세션 이름에서 허용되지 않는 문자(. : 등)를 -로 치환
+    return name.replace(/[.:]/g, '-');
+}
+
+export function buildSessionName(repoName: string, slug: string): string {
+    return `${sanitizeSessionName(repoName)}_${sanitizeSessionName(slug)}`;
 }
 
 export function attachSession(sessionName: string, cwd?: string, location: vscode.TerminalLocation = vscode.TerminalLocation.Editor): vscode.Terminal {

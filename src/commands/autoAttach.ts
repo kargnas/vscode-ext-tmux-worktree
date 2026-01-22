@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { exec } from '../utils/exec';
-import { attachSession } from '../utils/tmux';
+import { attachSession, sanitizeSessionName } from '../utils/tmux';
 
 export async function autoAttachOnStartup(): Promise<void> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -9,7 +9,7 @@ export async function autoAttachOnStartup(): Promise<void> {
 
   const repoRoot = workspaceFolders[0].uri.fsPath;
   const repoName = path.basename(repoRoot);
-  const repoPrefix = `${repoName}_`;
+  const repoPrefix = `${sanitizeSessionName(repoName)}_`;
 
   interface SessionInfo {
     name: string;

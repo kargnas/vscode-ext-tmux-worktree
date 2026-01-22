@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { exec } from './exec';
+import { buildSessionName } from './tmux';
 
 export interface Worktree {
   path: string;
@@ -108,7 +109,7 @@ export async function isSlugTaken(slug: string, repoName: string, repoRoot: stri
   // 2. tmux 세션에서 확인
   try {
     const sessions = await exec("tmux list-sessions -F '#{session_name}'");
-    const sessionName = `${repoName}_${slug}`;
+    const sessionName = buildSessionName(repoName, slug);
     return sessions.split('\n').some(s => s.trim() === sessionName);
   } catch {
     // tmux 서버 없으면 세션 충돌 없음

@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from '../utils/exec';
 import { getRepoRoot, getRepoName, listWorktrees, Worktree } from '../utils/git';
-import { listSessions, getSessionWorkdir, TmuxSession } from '../utils/tmux';
+import { listSessions, getSessionWorkdir, TmuxSession, buildSessionName, sanitizeSessionName } from '../utils/tmux';
 
 export type Classification = 'attached' | 'alive' | 'idle' | 'stopped' | 'orphan';
 export type FilterType = 'all' | 'attached' | 'alive' | 'idle' | 'stopped' | 'orphans';
@@ -370,7 +370,7 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
         ]);
         this._error = undefined; // 성공 시 에러 초기화
 
-        const repoPrefix = `${repoName}_`;
+        const repoPrefix = `${sanitizeSessionName(repoName)}_`;
         const repoSessions = allSessions.filter(s => s.name.startsWith(repoPrefix));
 
         for (const s of repoSessions) s.workdir = await getSessionWorkdir(s.name);
@@ -417,7 +417,7 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
                 } else if (slug === repoName) {
                     slug = 'main';
                 }
-                const sessionName = `${repoName}_${slug}`;
+                const sessionName = buildSessionName(repoName, slug);
                 items.push(new InactiveWorktreeItem(worktree, repoName, sessionName));
                 continue;
             }

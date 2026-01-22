@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { getRepoRoot, getRepoName, getBaseBranch, isSlugTaken, addWorktree } from '../utils/git';
-import { isTmuxInstalled, createSession, setSessionWorkdir, attachSession } from '../utils/tmux';
+import { isTmuxInstalled, createSession, setSessionWorkdir, attachSession, buildSessionName } from '../utils/tmux';
 
 export async function newTask(): Promise<void> {
   // 0. tmux 설치 확인
@@ -53,7 +53,7 @@ export async function newTask(): Promise<void> {
     const worktreePath = await addWorktree(repoRoot, finalSlug, baseBranch);
 
     // 7. tmux session 생성
-    const sessionName = `${repoName}_${finalSlug}`;
+    const sessionName = buildSessionName(repoName, finalSlug);
     await createSession(sessionName, worktreePath);
     await setSessionWorkdir(sessionName, worktreePath);
 
