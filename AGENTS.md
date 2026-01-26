@@ -3,6 +3,14 @@
 This document serves as the primary rule file for AI Agents working on this project.
 **ALWAYS** update this file when you discover new patterns or finish significant tasks.
 
+## Instruction
+- After every task and changes, install the compiled extension to `antigravity` (not `code`). The version should be increased by 1 patch.
+
+## Tested VS Code
+- `code` (VS Code)
+- `antigravity` (Google Antigraity)
+- `cursor` (Cursor)
+
 ## 1. Codebase Understanding
 
 ### Project Structure
