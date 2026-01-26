@@ -18,11 +18,11 @@ export async function autoAttachOnStartup(): Promise<void> {
 
   let sessions: SessionInfo[] = [];
   try {
-    const output = await exec("tmux list-sessions -F '#{session_name}\t#{session_attached}'");
+    const output = await exec("tmux list-sessions -F '#{session_name}|||#{session_attached}'");
     sessions = output.split('\n')
       .filter(line => line.trim().length > 0)
       .map(line => {
-        const [name, attachedStr] = line.split('\t');
+        const [name, attachedStr] = line.split('|||');
         return {
           name,
           attached: attachedStr === '1'

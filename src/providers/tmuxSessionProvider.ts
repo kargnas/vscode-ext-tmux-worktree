@@ -59,8 +59,8 @@ async function getSessionStatus(sessionName: string, worktreePath?: string): Pro
   let gitDeleted = 0;
 
   try {
-    const output = await exec(`tmux display-message -p -t "${sessionName}" '#{session_attached}\t#{session_activity}'`);
-    const [attachedStr, activityStr] = output.split('\t');
+    const output = await exec(`tmux display-message -p -t "${sessionName}" '#{session_attached}|||#{session_activity}'`);
+    const [attachedStr, activityStr] = output.split('|||');
     attached = attachedStr === '1';
     lastActive = parseInt(activityStr, 10) || 0;
   } catch {

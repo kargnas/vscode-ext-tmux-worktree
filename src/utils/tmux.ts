@@ -19,9 +19,10 @@ export async function isTmuxInstalled(): Promise<boolean> {
 
 export async function listSessions(): Promise<TmuxSession[]> {
   try {
-    const output = await exec("tmux list-sessions -F '#{session_name}\t#{session_windows}\t#{session_attached}'");
+    // VS Code Extension Host 환경에서 탭 문자가 변환되는 문제 (tmux 3.5a+)
+    const output = await exec("tmux list-sessions -F '#{session_name}|||#{session_windows}|||#{session_attached}'");
     return output.split('\n').filter(l => l.trim()).map(line => {
-      const [name, windows, attached] = line.split('\t');
+      const [name, windows, attached] = line.split('|||');
       return {
         name,
         windows: parseInt(windows, 10) || 1,
