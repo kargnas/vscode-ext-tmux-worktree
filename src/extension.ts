@@ -11,10 +11,7 @@ import {
   openWorktree,
   copyPath,
   newPane,
-  newWindow,
-  runClaude,
-  runOpencode,
-  runCustom
+  newWindow
 } from './commands/contextMenu';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -42,10 +39,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('tmux.openWorktree', openWorktree),
     vscode.commands.registerCommand('tmux.copyPath', copyPath),
     vscode.commands.registerCommand('tmux.newPane', newPane),
-    vscode.commands.registerCommand('tmux.newWindow', newWindow),
-    vscode.commands.registerCommand('tmux.runClaude', runClaude),
-    vscode.commands.registerCommand('tmux.runOpencode', runOpencode),
-    vscode.commands.registerCommand('tmux.runCustom', runCustom)
+    vscode.commands.registerCommand('tmux.newWindow', newWindow)
   );
 
   autoAttachOnStartup();

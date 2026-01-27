@@ -86,33 +86,3 @@ export async function newWindow(item: TmuxItem): Promise<void> {
     vscode.window.showErrorMessage(`Failed to create window: ${err}`);
   }
 }
-
-export function runClaude(item: TmuxItem): void {
-  runCommand(item, 'claude');
-}
-
-export function runOpencode(item: TmuxItem): void {
-  runCommand(item, 'opencode');
-}
-
-export async function runCustom(item: TmuxItem): Promise<void> {
-  const command = await vscode.window.showInputBox({
-    prompt: 'Enter command to run',
-    placeHolder: 'e.g., npm run dev'
-  });
-  if (command) {
-    runCommand(item, command);
-  }
-}
-
-function runCommand(item: TmuxItem, command: string): void {
-  const cwd = getWorktreePath(item);
-  const terminalName = `CLI: ${command.split(' ')[0]}`;
-  
-  const terminal = vscode.window.createTerminal({
-    name: terminalName,
-    cwd
-  });
-  terminal.sendText(command);
-  terminal.show();
-}

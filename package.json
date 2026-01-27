@@ -80,18 +80,7 @@
         "command": "tmux.newWindow",
         "title": "New Window"
       },
-      {
-        "command": "tmux.runClaude",
-        "title": "Run: claude"
-      },
-      {
-        "command": "tmux.runOpencode",
-        "title": "Run: opencode"
-      },
-      {
-        "command": "tmux.runCustom",
-        "title": "Run: Custom Command..."
-      },
+
       {
         "command": "tmux.cleanupOrphans",
         "title": "TMUX: Cleanup Orphans",
@@ -153,21 +142,7 @@
           "when": "view == tmuxSessions && viewItem =~ /^tmuxSession/",
           "group": "3_tmux"
         },
-        {
-          "command": "tmux.runClaude",
-          "when": "view == tmuxSessions && viewItem =~ /^tmuxSession/",
-          "group": "4_run"
-        },
-        {
-          "command": "tmux.runOpencode",
-          "when": "view == tmuxSessions && viewItem =~ /^tmuxSession/",
-          "group": "4_run"
-        },
-        {
-          "command": "tmux.runCustom",
-          "when": "view == tmuxSessions && viewItem =~ /^tmuxSession/",
-          "group": "4_run"
-        },
+
         {
           "command": "tmux.removeTask",
           "when": "view == tmuxSessions && viewItem == tmuxSession",
