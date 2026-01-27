@@ -83,9 +83,6 @@ type Model struct {
 
 	// Result
 	AttachSession *AttachAction
-
-	// Error handling
-	err error
 }
 
 func NewModel() Model {

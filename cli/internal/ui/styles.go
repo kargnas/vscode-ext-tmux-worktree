@@ -6,27 +6,11 @@ var (
 	// Palette (VS Code / Modern Industrial)
 	// High contrast, clean, utilitarian.
 	cPrimary    = lipgloss.Color("#58A6FF") // Bright Blue
-	cSecondary  = lipgloss.Color("#8B949E") // Medium Gray
-	cSuccess    = lipgloss.Color("#238636") // Green
-	cWarning    = lipgloss.Color("#D29922") // Orange
-	cError      = lipgloss.Color("#F85149") // Red
-	cText       = lipgloss.Color("#C9D1D9") // Main Text
 	cSubtle     = lipgloss.Color("#6E7681") // Subtle Text/Comments
+	cWarning    = lipgloss.Color("#D29922") // Orange
+	cText       = lipgloss.Color("#C9D1D9") // Main Text
 	cDim        = lipgloss.Color("#484F58") // Very Dim / Borders
 	cBgSelected = lipgloss.Color("#161B22") // List Selection BG
-
-	// Semantic mappings (Keeping names for compatibility with model.go)
-	primaryColor   = cPrimary
-	secondaryColor = cSubtle
-	subtleColor    = cSubtle
-	warningColor   = cWarning
-	errorColor     = cError
-	successColor   = cSuccess
-	textColor      = cText
-	dimColor       = cDim
-
-	// Layout
-	appStyle = lipgloss.NewStyle().Margin(1, 1)
 
 	// Tabs: Pill Style
 	tabStyle = lipgloss.NewStyle().
@@ -41,18 +25,10 @@ var (
 			Bold(true).
 			MarginRight(1)
 
-	tabGap = lipgloss.NewStyle().Width(1)
-
 	filterStyle = lipgloss.NewStyle().
 			Foreground(cWarning).
 			Bold(true).
 			MarginLeft(2)
-
-	// List
-	listStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(cDim).
-			Padding(0, 0)
 
 	// Item Styles
 	itemStyle = lipgloss.NewStyle().
