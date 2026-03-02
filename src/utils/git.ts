@@ -50,6 +50,16 @@ export function getRepoSessionNamespace(repoRoot: string): string {
 
 // Determine base branch by checking common default branch names in order
 export async function getBaseBranch(repoRoot: string): Promise<string> {
+  const override = vscode.workspace.getConfiguration('tmuxWorktree').get<string>('baseBranch');
+  if (override) {
+    try {
+      await exec(`git rev-parse --verify ${override}`, { cwd: repoRoot });
+      return override;
+    } catch {
+      throw new Error(`Configured baseBranch "${override}" not found in repository`);
+    }
+  }
+
   const candidates = ['origin/main', 'main', 'origin/master', 'master'];
   for (const candidate of candidates) {
     try {

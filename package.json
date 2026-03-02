@@ -140,6 +140,16 @@
         "linux": "ctrl+shift+v"
       }
     ],
+    "configuration": {
+      "title": "TMUX Worktree",
+      "properties": {
+        "tmuxWorktree.baseBranch": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Override the base branch used when creating new task worktrees (e.g. `master`, `origin/master`). Leave empty to auto-detect from `origin/main`, `main`, `origin/master`, `master`."
+        }
+      }
+    },
     "menus": {
       "view/title": [
         {
