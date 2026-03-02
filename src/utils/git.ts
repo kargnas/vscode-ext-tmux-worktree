@@ -48,19 +48,18 @@ export function getRepoSessionNamespace(repoRoot: string): string {
   return `${repoName}-${rootHash}`;
 }
 
-// origin/main 존재 여부 확인 후 기준 브랜치 결정
+// Determine base branch by checking common default branch names in order
 export async function getBaseBranch(repoRoot: string): Promise<string> {
-  try {
-    await exec('git rev-parse --verify origin/main', { cwd: repoRoot });
-    return 'origin/main';
-  } catch {
+  const candidates = ['origin/main', 'main', 'origin/master', 'master'];
+  for (const candidate of candidates) {
     try {
-      await exec('git rev-parse --verify main', { cwd: repoRoot });
-      return 'main';
+      await exec(`git rev-parse --verify ${candidate}`, { cwd: repoRoot });
+      return candidate;
     } catch {
-      throw new Error('No main branch found (origin/main or main)');
+      // try next candidate
     }
   }
+  throw new Error('No default branch found (tried: origin/main, main, origin/master, master)');
 }
 
 // .worktrees 디렉터리 확보
