@@ -214,13 +214,15 @@ export async function isSlugTaken(slug: string, repoSessionNamespace: string, re
   const candidatePath = path.join(worktreesDir, slug);
   const normalizedCandidatePath = toCanonicalPath(candidatePath) || path.resolve(candidatePath);
 
-  // 1. Existing worktree path or leftover directory
+  // 1. Existing worktree path, reserved primary slug, or leftover directory
   const worktrees = await listWorktrees(repoRoot);
   const worktreePathExists = worktrees.some(worktree => {
     const normalizedPath = toCanonicalPath(worktree.path) || path.resolve(worktree.path);
     return normalizedPath === normalizedCandidatePath;
   });
-  if (worktreePathExists || fs.existsSync(candidatePath)) return true;
+  const reservedPrimarySlug = sanitizeSessionName(slug) === sanitizeSessionName('main') &&
+    worktrees.some(worktree => worktree.isMain);
+  if (worktreePathExists || reservedPrimarySlug || fs.existsSync(candidatePath)) return true;
 
   // 2. tmux 세션에서 확인
   try {

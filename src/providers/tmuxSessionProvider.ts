@@ -43,8 +43,12 @@ function getDefaultWorktreeSlug(worktree: Worktree, repoName: string): string {
   const baseName = path.basename(worktree.path);
   if (baseName !== repoName) return baseName;
 
-  // Keep session names unique when worktrees live outside the repo root.
   const parentName = path.basename(path.dirname(worktree.path));
+  if (parentName === '.worktrees') {
+    return baseName;
+  }
+
+  // Keep session names unique when external worktrees reuse the repo directory name.
   if (parentName && parentName !== baseName) {
     return `${baseName}-${parentName}`;
   }
@@ -59,14 +63,20 @@ function shortPathHash(targetPath: string): string {
 
 function buildWorktreeSlugMap(worktrees: Worktree[], repoName: string): Map<string, string> {
   const slugByPath = new Map<string, string>();
+  const usedSanitizedSlugs = new Set<string>();
   type Candidate = { worktree: Worktree; slug: string };
   const pending: Candidate[] = [];
+
+  const rememberSlug = (slug: string): void => {
+    usedSanitizedSlugs.add(sanitizeSessionName(slug));
+  };
 
   for (const worktree of worktrees) {
     const normalizedPath = toCanonicalPath(worktree.path);
     if (!normalizedPath) continue;
     if (worktree.isMain) {
       slugByPath.set(normalizedPath, 'main');
+      rememberSlug('main');
       continue;
     }
     pending.push({ worktree, slug: getDefaultWorktreeSlug(worktree, repoName) });
@@ -88,12 +98,13 @@ function buildWorktreeSlugMap(worktrees: Worktree[], repoName: string): Map<stri
     }
 
     const unresolved: Candidate[] = [];
-    for (const group of groups.values()) {
-      if (group.length === 1) {
+    for (const [key, group] of groups.entries()) {
+      if (group.length === 1 && !usedSanitizedSlugs.has(key)) {
         const only = group[0];
         const onlyPath = toCanonicalPath(only.worktree.path);
         if (onlyPath) {
           slugByPath.set(onlyPath, only.slug);
+          rememberSlug(only.slug);
         }
         continue;
       }

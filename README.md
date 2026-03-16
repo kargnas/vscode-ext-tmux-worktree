@@ -65,6 +65,7 @@ A dedicated sidebar showing all your git worktrees and their associated tmux ses
 ### ⚡ One-Click Task Creation
 Create a new git branch + worktree + tmux session in one step. Start working on a new feature instantly.
 Enter any valid branch name such as `feat/auth` or `task/my-task`; tmux session/worktree slugs safely flatten `/` into `-`.
+If a task slug would collide with the primary worktree slug like `main`, the extension auto-suffixes it to keep sessions unique.
 
 ### 🔗 Smart Attach
 - **Attach in Terminal** — open tmux session in VS Code's integrated terminal

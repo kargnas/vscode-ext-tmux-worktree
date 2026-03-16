@@ -38,10 +38,15 @@ func GetSlugFromWorktree(worktreePath, repoName string, isMain bool) string {
 		return "main"
 	}
 
-	// 2. If the directory name (slug) equals the repo name -> force "main"
-	//    (e.g. /path/to/my-project)
+	// 2. External worktrees that reuse the repo directory name need a parent suffix.
 	if slug == repoName {
-		return "main"
+		parentName := filepath.Base(filepath.Dir(worktreePath))
+		if parentName == ".worktrees" {
+			return slug
+		}
+		if parentName != "" && parentName != slug {
+			return slug + "-" + parentName
+		}
 	}
 
 	return slug
@@ -53,23 +58,14 @@ func GetSessionName(repoName, slug string) string {
 }
 
 // IsRoot determines if this item should be labeled as "(root)" in the UI.
-func IsRoot(slug, repoName string, worktreePath string, isMain bool) bool {
-	// Logic from TmuxSessionItem constructor
-	// if (!label || label === repoName) -> (root)
-
-	if slug == "" || slug == repoName || slug == "main" {
+func IsRoot(_ string, repoName string, worktreePath string, isMain bool) bool {
+	if isMain {
 		return true
 	}
 
-	// Logic from worktree path check
 	if worktreePath != "" {
 		base := filepath.Base(worktreePath)
-		if base == repoName {
-			return true
-		}
-
-		// if (worktree.isMain && !worktree.path.includes('.worktrees'))
-		if isMain && !strings.Contains(worktreePath, ".worktrees") {
+		if base == repoName && !strings.Contains(worktreePath, ".worktrees") {
 			return true
 		}
 	}

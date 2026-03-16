@@ -46,6 +46,7 @@ This document serves as the primary rule file for AI Agents working on this proj
 - **External Worktrees**: If the worktree folder name matches the repo name, derive a unique slug/label from the parent directory.
 - **Slug Collision Handling**: Worktree session slugs must be unique by sanitized tmux name. Start with basename-based slug, then disambiguate with parent directory, and finally append a short path hash when collisions remain.
 - **Free-Form Task Branches**: `TMUX: New Task` accepts arbitrary valid git branch names, including `/`. Sanitize `/` to `-` for tmux/worktree slugs, and never infer main-vs-task state from a `task/` prefix.
+- **Primary `main` Slug Reservation**: Reserve `main` for the primary worktree. If a non-primary worktree or branch would sanitize to `main`, suffix it during slug collision resolution instead of reusing the primary session name.
 - **Tree Context Menu**: Use a single TreeItem `contextValue` (`tmuxItem`) for levels 2/3/4 so the same context menu always appears.
 - **Error Handling**: Use `try-catch` in TS and check `err != nil` in Go. Fail gracefully and notify the user.
 - **Async/Await**: Use `async/await` for all I/O operations in TypeScript.
