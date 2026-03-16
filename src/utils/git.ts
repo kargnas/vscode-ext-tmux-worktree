@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
 import { createHash } from 'crypto';
@@ -63,9 +64,24 @@ export async function getBaseBranch(repoRoot: string): Promise<string> {
   }
 }
 
-// .worktrees 디렉터리 확보
+export function getManagedWorktreesRoot(): string {
+  return path.join(os.homedir(), '.tmux-worktrees');
+}
+
+export function getManagedRepoWorktreesDir(repoRoot: string): string {
+  return path.join(getManagedWorktreesRoot(), getRepoSessionNamespace(repoRoot));
+}
+
+export function isManagedWorktreePath(repoRoot: string, worktreePath: string): boolean {
+  const managedDir = toCanonicalPath(getManagedRepoWorktreesDir(repoRoot));
+  const candidatePath = toCanonicalPath(worktreePath);
+  if (!managedDir || !candidatePath) return false;
+  return candidatePath === managedDir || candidatePath.startsWith(`${managedDir}${path.sep}`);
+}
+
+// Ensure the managed worktree directory exists.
 export async function ensureWorktreesDir(repoRoot: string): Promise<string> {
-  const worktreesDir = path.join(repoRoot, '.worktrees');
+  const worktreesDir = getManagedRepoWorktreesDir(repoRoot);
   if (!fs.existsSync(worktreesDir)) {
     await fs.promises.mkdir(worktreesDir, { recursive: true });
   }
