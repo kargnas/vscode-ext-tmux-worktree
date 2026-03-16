@@ -123,7 +123,6 @@ export async function localBranchExists(repoRoot: string, branchName: string): P
     return false;
   }
 }
-
 export function getManagedWorktreesRoot(): string {
   return path.join(os.homedir(), '.tmux-worktrees');
 }

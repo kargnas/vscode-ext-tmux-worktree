@@ -16,9 +16,9 @@
       "group": "build"
     },
     {
-      "label": "🚀 Deploy to Antigravity",
+      "label": "🚀 Deploy to code-insiders",
       "type": "shell",
-      "command": "bun run compile && npx vsce package --no-dependencies && antigravity --install-extension vscode-tmux-worktree-0.0.13.vsix --force",
+      "command": "bun run compile && npx vsce package --no-dependencies && VSIX=$(ls -t vscode-tmux-worktree-*.vsix | head -n 1) && code-insiders --install-extension \"$VSIX\" --force",
       "problemMatcher": ["$tsc"],
       "group": "build"
     },
