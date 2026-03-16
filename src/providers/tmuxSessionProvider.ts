@@ -44,7 +44,8 @@ function getDefaultWorktreeSlug(worktree: Worktree, repoName: string): string {
   if (baseName !== repoName) return baseName;
 
   const parentName = path.basename(path.dirname(worktree.path));
-  if (parentName === '.worktrees') {
+  const grandParentName = path.basename(path.dirname(path.dirname(worktree.path)));
+  if (parentName === '.worktrees' || grandParentName === '.tmux-worktrees') {
     return baseName;
   }
 

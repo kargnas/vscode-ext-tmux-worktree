@@ -3,7 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from '../utils/exec';
 import { killSession, listSessions, getSessionWorkdir, TmuxSession } from '../utils/tmux';
-import { getRepoRoot, listWorktrees } from '../utils/git';
+import { getRepoRoot, isManagedWorktreePath, listWorktrees } from '../utils/git';
+import { toCanonicalPath } from '../utils/path';
 import { createRepoSessionPrefixConfig, isWorkdirInRepo } from '../utils/sessionCompatibility';
 
 export async function cleanupOrphans(): Promise<void> {
@@ -34,12 +35,15 @@ export async function cleanupOrphans(): Promise<void> {
     const sessionWorkdirs = new Set<string>();
     for (const session of repoSessions) {
       const workdir = session.workdir || await getSessionWorkdir(session.name);
-      if (workdir) sessionWorkdirs.add(workdir);
+      if (!workdir) continue;
+      const normalizedWorkdir = toCanonicalPath(workdir) || path.resolve(workdir);
+      sessionWorkdirs.add(normalizedWorkdir);
     }
     
     const worktreeOnly: string[] = [];
     for (const wt of worktrees) {
-      if (wt.path.includes('/.worktrees/') && !sessionWorkdirs.has(wt.path)) {
+      const normalizedWorktreePath = toCanonicalPath(wt.path) || path.resolve(wt.path);
+      if (isManagedWorktreePath(repoRoot, wt.path) && !sessionWorkdirs.has(normalizedWorktreePath)) {
         worktreeOnly.push(wt.path);
       }
     }

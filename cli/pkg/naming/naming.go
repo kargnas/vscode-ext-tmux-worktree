@@ -31,17 +31,19 @@ func GetSlugFromSessionName(sessionName, repoName string) string {
 // GetSlugFromWorktree determines the slug from a worktree path.
 func GetSlugFromWorktree(worktreePath, repoName string, isMain bool) string {
 	slug := filepath.Base(worktreePath)
+	parentName := filepath.Base(filepath.Dir(worktreePath))
+	grandParentName := filepath.Base(filepath.Dir(filepath.Dir(worktreePath)))
+	isManagedStoragePath := parentName == ".worktrees" || grandParentName == ".tmux-worktrees"
 
 	// 1. If worktree is main branch AND path does not contain ".worktrees"
 	//    (usually the root repo directory) -> force "main"
-	if isMain && !strings.Contains(worktreePath, ".worktrees") {
+	if isMain && !isManagedStoragePath {
 		return "main"
 	}
 
 	// 2. External worktrees that reuse the repo directory name need a parent suffix.
 	if slug == repoName {
-		parentName := filepath.Base(filepath.Dir(worktreePath))
-		if parentName == ".worktrees" {
+		if isManagedStoragePath {
 			return slug
 		}
 		if parentName != "" && parentName != slug {
@@ -65,7 +67,10 @@ func IsRoot(_ string, repoName string, worktreePath string, isMain bool) bool {
 
 	if worktreePath != "" {
 		base := filepath.Base(worktreePath)
-		if base == repoName && !strings.Contains(worktreePath, ".worktrees") {
+		parentName := filepath.Base(filepath.Dir(worktreePath))
+		grandParentName := filepath.Base(filepath.Dir(filepath.Dir(worktreePath)))
+		isManagedStoragePath := parentName == ".worktrees" || grandParentName == ".tmux-worktrees"
+		if base == repoName && !isManagedStoragePath {
 			return true
 		}
 	}
