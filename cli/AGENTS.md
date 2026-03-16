@@ -44,9 +44,9 @@ We must replicate the logic from the VS Code extension exactly.
   - If `slug` == `repoName`
   - If worktree is main branch and not in `.worktrees` folder
 
-### 5. `isMain` Branch Logic
-- A branch is considered "main" if it does **NOT** start with `task/`.
-- `isMain = !branch.startsWith('task/')`
+### 5. Primary Worktree Logic
+- `isMain` must be determined by comparing a worktree path against the primary worktree path derived from `git rev-parse --git-common-dir`.
+- Never infer main-vs-task state from a branch prefix such as `task/`.
 
 ## 🛠 Tech Stack
 - **Language**: Go

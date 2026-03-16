@@ -1,5 +1,14 @@
 import * as vscode from 'vscode';
-import { getRepoRoot, getRepoSessionNamespace, getBaseBranch, isSlugTaken, addWorktree } from '../utils/git';
+import {
+  addWorktree,
+  branchNameToSlug,
+  getBaseBranch,
+  getRepoRoot,
+  getRepoSessionNamespace,
+  isSlugTaken,
+  localBranchExists,
+  validateBranchName
+} from '../utils/git';
 import { isTmuxInstalled, createSession, setSessionWorkdir, attachSession, buildSessionName } from '../utils/tmux';
 
 export async function newTask(): Promise<void> {
@@ -9,39 +18,46 @@ export async function newTask(): Promise<void> {
     return;
   }
 
-  // 1. slug 입력 받기
-  const slugInput = await vscode.window.showInputBox({
-    prompt: 'Enter task slug (e.g., "feature-auth", "fix-login")',
-    placeHolder: 'my-task-name',
+  let repoRoot: string;
+  let repoSessionNamespace: string;
+  try {
+    repoRoot = getRepoRoot();
+    repoSessionNamespace = getRepoSessionNamespace(repoRoot);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    vscode.window.showErrorMessage(`Failed to create task: ${message}`);
+    return;
+  }
+
+  // 1. branch name 입력 받기
+  const branchInput = await vscode.window.showInputBox({
+    prompt: 'Enter branch name (e.g., "feat/auth", "task/my-task")',
+    placeHolder: 'feat/my-task',
     validateInput: (value) => {
-      if (!value || value.trim() === '') {
-        return 'Slug is required.';
-      }
-      // 소문자/숫자/`-`만 허용
-      if (!/^[a-z0-9-]+$/.test(value)) {
-        return 'Slug must contain only lowercase letters, numbers, and hyphens.';
-      }
-      if (value.length > 32) {
-        return 'Slug must be 32 characters or less.';
-      }
-      return null;
+      return validateBranchName(value);
     }
   });
 
-  if (!slugInput) return; // 취소됨
+  if (!branchInput) return; // 취소됨
 
-  // 2. slug 정규화
-  const slug = slugInput.trim().toLowerCase().replace(/\s+/g, '-');
+  // 2. branch name 정규화
+  const branchName = branchInput.trim();
+  const branchValidationError = validateBranchName(branchName);
+  if (branchValidationError) {
+    vscode.window.showErrorMessage(branchValidationError);
+    return;
+  }
 
   try {
-    // 3. repoRoot 결정
-    const repoRoot = getRepoRoot();
-    const repoSessionNamespace = getRepoSessionNamespace(repoRoot);
+    if (await localBranchExists(repoRoot, branchName)) {
+      throw new Error(`Branch "${branchName}" already exists.`);
+    }
 
-    // 4. 기준 브랜치 결정
+    // 3. 기준 브랜치 결정
     const baseBranch = await getBaseBranch(repoRoot);
 
-    // 5. slug 충돌 확인 및 해결
+    // 4. session/worktree slug 충돌 확인 및 해결
+    const slug = branchNameToSlug(branchName);
     let finalSlug = slug;
     let suffix = 1;
     while (await isSlugTaken(finalSlug, repoSessionNamespace, repoRoot)) {
@@ -49,21 +65,21 @@ export async function newTask(): Promise<void> {
       finalSlug = `${slug}-${suffix}`;
     }
 
-    // 6. worktree 생성
-    const worktreePath = await addWorktree(repoRoot, finalSlug, baseBranch);
+    // 5. worktree 생성
+    const worktreePath = await addWorktree(repoRoot, branchName, finalSlug, baseBranch);
 
-    // 7. tmux session 생성
+    // 6. tmux session 생성
     const sessionName = buildSessionName(repoSessionNamespace, finalSlug);
     await createSession(sessionName, worktreePath);
     await setSessionWorkdir(sessionName, worktreePath);
 
-    // 8. attach
+    // 7. attach
     attachSession(sessionName, worktreePath);
 
-    // 9. 성공 메시지
-    vscode.window.showInformationMessage(`Created task: ${finalSlug}`);
+    // 8. 성공 메시지
+    vscode.window.showInformationMessage(`Created task: ${branchName}`);
 
-    // 10. TreeView 갱신 (refresh 명령 호출)
+    // 9. TreeView 갱신 (refresh 명령 호출)
     vscode.commands.executeCommand('tmux.refresh');
 
   } catch (error) {

@@ -5,11 +5,62 @@ import { createHash } from 'crypto';
 import { exec } from './exec';
 import { buildSessionName, sanitizeSessionName } from './tmux';
 import { toCanonicalPath } from './path';
+import { shellQuote } from './shell';
 
 export interface Worktree {
   path: string;
   branch: string;
   isMain: boolean;
+}
+
+export function validateBranchName(branchName: string): string | undefined {
+  const trimmedBranch = branchName.trim();
+
+  if (!trimmedBranch) {
+    return 'Branch name is required.';
+  }
+  if (/\s/.test(trimmedBranch)) {
+    return 'Branch names cannot contain whitespace.';
+  }
+  if (trimmedBranch === '@') {
+    return 'Branch name "@" is not allowed.';
+  }
+  if (trimmedBranch.startsWith('-')) {
+    return 'Branch names cannot start with "-".';
+  }
+  if (trimmedBranch.startsWith('/') || trimmedBranch.endsWith('/')) {
+    return 'Branch names cannot start or end with "/".';
+  }
+  if (trimmedBranch.endsWith('.')) {
+    return 'Branch names cannot end with ".".';
+  }
+  if (trimmedBranch.endsWith('.lock')) {
+    return 'Branch names cannot end with ".lock".';
+  }
+  if (trimmedBranch.includes('..')) {
+    return 'Branch names cannot contain "..".';
+  }
+  if (trimmedBranch.includes('//')) {
+    return 'Branch names cannot contain "//".';
+  }
+  if (trimmedBranch.includes('@{')) {
+    return 'Branch names cannot contain "@{".';
+  }
+  if (/[~^:?*\\]/.test(trimmedBranch) || trimmedBranch.includes('[')) {
+    return 'Branch names contain invalid characters.';
+  }
+  if (Array.from(trimmedBranch).some(char => {
+    const code = char.charCodeAt(0);
+    return code < 32 || code === 127;
+  })) {
+    return 'Branch names cannot contain control characters.';
+  }
+
+  return undefined;
+}
+
+export function branchNameToSlug(branchName: string): string {
+  return sanitizeSessionName(branchName.trim());
 }
 
 // 모든 Task에서 사용하는 repoRoot 선정 규칙
@@ -60,6 +111,15 @@ export async function getBaseBranch(repoRoot: string): Promise<string> {
     } catch {
       throw new Error('No main branch found (origin/main or main)');
     }
+  }
+}
+
+export async function localBranchExists(repoRoot: string, branchName: string): Promise<boolean> {
+  try {
+    const output = await exec("git for-each-ref --format='%(refname:short)' refs/heads", { cwd: repoRoot });
+    return output.split('\n').some(line => line.trim() === branchName);
+  } catch {
+    return false;
   }
 }
 
@@ -139,13 +199,29 @@ export async function listWorktrees(repoRoot: string): Promise<Worktree[]> {
   }
 }
 
-// slug 충돌 확인 (worktree + tmux 세션 모두 확인)
-export async function isSlugTaken(slug: string, repoSessionNamespace: string, repoRoot: string): Promise<boolean> {
-  // 1. git worktree에서 branch 확인
+export async function getWorktreeBranch(repoRoot: string, worktreePath: string): Promise<string | undefined> {
+  const normalizedCandidatePath = toCanonicalPath(worktreePath) || path.resolve(worktreePath);
   const worktrees = await listWorktrees(repoRoot);
-  const branchExists = worktrees.some(w => w.branch === `task/${slug}`);
-  if (branchExists) return true;
-  
+  return worktrees.find(worktree => {
+    const normalizedPath = toCanonicalPath(worktree.path) || path.resolve(worktree.path);
+    return normalizedPath === normalizedCandidatePath;
+  })?.branch;
+}
+
+// slug 충돌 확인 (extension-managed worktree path + tmux session)
+export async function isSlugTaken(slug: string, repoSessionNamespace: string, repoRoot: string): Promise<boolean> {
+  const worktreesDir = await ensureWorktreesDir(repoRoot);
+  const candidatePath = path.join(worktreesDir, slug);
+  const normalizedCandidatePath = toCanonicalPath(candidatePath) || path.resolve(candidatePath);
+
+  // 1. Existing worktree path or leftover directory
+  const worktrees = await listWorktrees(repoRoot);
+  const worktreePathExists = worktrees.some(worktree => {
+    const normalizedPath = toCanonicalPath(worktree.path) || path.resolve(worktree.path);
+    return normalizedPath === normalizedCandidatePath;
+  });
+  if (worktreePathExists || fs.existsSync(candidatePath)) return true;
+
   // 2. tmux 세션에서 확인
   try {
     const sessions = await exec("tmux list-sessions -F '#{session_name}'");
@@ -158,17 +234,27 @@ export async function isSlugTaken(slug: string, repoSessionNamespace: string, re
 }
 
 // worktree 생성
-export async function addWorktree(repoRoot: string, slug: string, baseBranch: string): Promise<string> {
+export async function addWorktree(
+  repoRoot: string,
+  branchName: string,
+  slug: string,
+  baseBranch: string
+): Promise<string> {
   const worktreesDir = await ensureWorktreesDir(repoRoot);
   const worktreePath = path.join(worktreesDir, slug);
-  const branchName = `task/${slug}`;
-  
-  await exec(`git worktree add "${worktreePath}" -b ${branchName} ${baseBranch}`, { cwd: repoRoot });
-  
+
+  await exec(
+    `git worktree add ${shellQuote(worktreePath)} -b ${shellQuote(branchName)} ${shellQuote(baseBranch)}`,
+    { cwd: repoRoot }
+  );
+
   // 원격에 브랜치가 없어도 upstream 설정 (push 시 자동으로 같은 이름 브랜치로 push되도록)
-  await exec(`git config branch.${branchName}.remote origin`, { cwd: repoRoot });
-  await exec(`git config branch.${branchName}.merge refs/heads/${branchName}`, { cwd: repoRoot });
-  
+  await exec(`git config ${shellQuote(`branch.${branchName}.remote`)} origin`, { cwd: repoRoot });
+  await exec(
+    `git config ${shellQuote(`branch.${branchName}.merge`)} ${shellQuote(`refs/heads/${branchName}`)}`,
+    { cwd: repoRoot }
+  );
+
   return worktreePath;
 }
 

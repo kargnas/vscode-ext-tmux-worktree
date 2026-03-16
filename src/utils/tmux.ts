@@ -66,8 +66,8 @@ function getShortName(sessionName: string): string {
 }
 
 export function sanitizeSessionName(name: string): string {
-    // tmux 세션 이름에서 허용되지 않는 문자(. : 등)를 -로 치환
-    return name.replace(/[.:]/g, '-');
+    // tmux session names should stay flat even when git branches use "/" paths.
+    return name.replace(/[/\\\s.:]/g, '-');
 }
 
 export function buildSessionName(repoName: string, slug: string): string {

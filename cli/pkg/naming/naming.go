@@ -52,12 +52,6 @@ func GetSessionName(repoName, slug string) string {
 	return repoName + "_" + slug
 }
 
-// IsMainBranch determines if a branch is considered "main".
-// Logic: If it starts with "task/", it is NOT main.
-func IsMainBranch(branch string) bool {
-	return !strings.HasPrefix(branch, "task/")
-}
-
 // IsRoot determines if this item should be labeled as "(root)" in the UI.
 func IsRoot(slug, repoName string, worktreePath string, isMain bool) bool {
 	// Logic from TmuxSessionItem constructor

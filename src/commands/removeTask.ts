@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as fs from "fs";
 import { exec } from "../utils/exec";
 import { killSession } from "../utils/tmux";
-import { getRepoRoot } from "../utils/git";
+import { getRepoRoot, getWorktreeBranch } from "../utils/git";
 import {
   TmuxItem,
   TmuxSessionItem,
@@ -15,6 +15,7 @@ import {
 import * as path from "path";
 import { toCanonicalPath } from "../utils/path";
 import { createRepoSessionPrefixConfig, extractRepoSessionSlug } from "../utils/sessionCompatibility";
+import { shellQuote } from "../utils/shell";
 
 async function isWorktreePathManagedByRepo(
   repoRoot: string,
@@ -67,6 +68,7 @@ export async function removeTask(item: TmuxItem): Promise<void> {
 
   let worktreePath: string | undefined;
   let slug: string | undefined;
+  let branchName: string | undefined;
 
   if (item instanceof TmuxSessionItem) {
     worktreePath = item.session.worktreePath;
@@ -86,6 +88,7 @@ export async function removeTask(item: TmuxItem): Promise<void> {
 
   try {
     const repoRoot = getRepoRoot();
+    branchName = worktreePath ? await getWorktreeBranch(repoRoot, worktreePath) : undefined;
     const sessionPrefixConfig = createRepoSessionPrefixConfig(repoRoot);
     slug = slug || extractRepoSessionSlug(sessionName, sessionPrefixConfig, { allowLegacy: true });
   } catch {
@@ -187,11 +190,15 @@ export async function removeTask(item: TmuxItem): Promise<void> {
     }
   }
 
-  const branchName = slug ? `task/${slug}` : undefined;
   try {
     const repoRoot = getRepoRoot();
-    if (!branchName) throw new Error("No slug");
-    await exec(`git rev-parse --verify "${branchName}"`, { cwd: repoRoot });
+    if (!branchName) throw new Error("No branch");
+
+    const localBranchesOutput = await exec("git for-each-ref --format='%(refname:short)' refs/heads", {
+      cwd: repoRoot,
+    });
+    const branchExists = localBranchesOutput.split("\n").some((line) => line.trim() === branchName);
+    if (!branchExists) throw new Error("Missing branch");
 
     const deleteBranch = await vscode.window.showWarningMessage(
       `Also delete local branch "${branchName}"?`,
@@ -199,12 +206,12 @@ export async function removeTask(item: TmuxItem): Promise<void> {
       "Keep Branch",
     );
     if (deleteBranch === "Delete Branch") {
-      await exec(`git branch -d "${branchName}"`, { cwd: repoRoot });
+      await exec(`git branch -d ${shellQuote(branchName)}`, { cwd: repoRoot });
     }
   } catch {
     void 0;
   }
 
-  vscode.window.showInformationMessage(`Removed: ${slug || sessionName}`);
+  vscode.window.showInformationMessage(`Removed: ${branchName || slug || sessionName}`);
   vscode.commands.executeCommand("tmux.refresh");
 }

@@ -35,6 +35,7 @@ Claude Code, Codex, OpenCode, Gemini CLI 같은 AI 코딩 에이전트를 tmux �
 
 ### ⚡ 원클릭 태스크 생성
 새 git 브랜치 + worktree + tmux 세션을 한 번에 만들 수 있어요. 새 기능 작업을 바로 시작하세요.
+`feat/auth`, `task/my-task` 같은 브랜치명도 그대로 입력할 수 있고, tmux 세션/worktree 슬러그는 `/`를 안전하게 `-`로 바꿔 충돌 없이 만듭니다.
 
 ### 🔗 스마트 연결
 - **터미널에서 연결** — VS Code 통합 터미널에서 tmux 세션 열기

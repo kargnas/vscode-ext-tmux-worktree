@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -13,6 +14,34 @@ type Worktree struct {
 	Head     string
 	IsMain   bool
 	Prunable bool
+}
+
+func normalizePath(targetPath string) string {
+	absPath, err := filepath.Abs(targetPath)
+	if err != nil {
+		return targetPath
+	}
+	return absPath
+}
+
+func getMainWorktreePath(repoRoot string) string {
+	cmd := exec.Command("git", "rev-parse", "--git-common-dir")
+	cmd.Dir = repoRoot
+	output, err := cmd.Output()
+	if err != nil {
+		return repoRoot
+	}
+
+	commonDir := strings.TrimSpace(string(output))
+	if commonDir == "" {
+		return repoRoot
+	}
+
+	if filepath.IsAbs(commonDir) {
+		return filepath.Dir(commonDir)
+	}
+
+	return filepath.Dir(filepath.Join(repoRoot, commonDir))
 }
 
 // ListWorktrees returns a list of worktrees for the given repo root.
@@ -27,6 +56,7 @@ func ListWorktrees(repoRoot string) ([]Worktree, error) {
 
 	var worktrees []Worktree
 	blocks := strings.Split(string(output), "\n\n")
+	mainWorktreePath := normalizePath(getMainWorktreePath(repoRoot))
 
 	for _, block := range blocks {
 		if strings.TrimSpace(block) == "" {
@@ -49,9 +79,7 @@ func ListWorktrees(repoRoot string) ([]Worktree, error) {
 		}
 
 		if wt.Path != "" && !wt.Prunable {
-			// Determine IsMain based on branch name (using same logic as TS)
-			// In TS: isMain: !branch.startsWith('task/')
-			wt.IsMain = !strings.HasPrefix(wt.Branch, "task/")
+			wt.IsMain = normalizePath(wt.Path) == mainWorktreePath
 			worktrees = append(worktrees, wt)
 		}
 	}
