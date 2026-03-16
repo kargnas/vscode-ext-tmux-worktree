@@ -64,6 +64,7 @@ A dedicated sidebar showing all your git worktrees and their associated tmux ses
 
 ### ⚡ One-Click Task Creation
 Create a new git branch + worktree + tmux session in one step. Start working on a new feature instantly.
+Managed worktrees are created under `~/.tmux-worktrees/<repo-name-hash>/` by default, which keeps repository roots clean and avoids cross-repo path collisions.
 Enter any valid branch name such as `feat/auth` or `task/my-task`; tmux session/worktree slugs safely flatten `/` into `-`.
 If a task slug would collide with the primary worktree slug like `main`, the extension auto-suffixes it to keep sessions unique.
 
@@ -138,6 +139,7 @@ Repository (root)
 ```
 
 Each worktree gets a dedicated tmux session. Session names use a repo namespace (`repo-name + path hash`) plus a slug, which avoids collisions across same-name repositories in different directories.
+New tasks are stored outside the repository by default at `~/.tmux-worktrees/<repo-name-hash>/`.
 
 ## Learn More
 

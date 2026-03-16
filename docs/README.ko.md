@@ -35,6 +35,7 @@ Claude Code, Codex, OpenCode, Gemini CLI 같은 AI 코딩 에이전트를 tmux �
 
 ### ⚡ 원클릭 태스크 생성
 새 git 브랜치 + worktree + tmux 세션을 한 번에 만들 수 있어요. 새 기능 작업을 바로 시작하세요.
+기본 생성 위치는 `~/.tmux-worktrees/<repo-name-hash>/`라서 저장소 루트가 지저분해지지 않고, 여러 저장소 사이 경로 충돌도 피할 수 있습니다.
 `feat/auth`, `task/my-task` 같은 브랜치명도 그대로 입력할 수 있고, tmux 세션/worktree 슬러그는 `/`를 안전하게 `-`로 바꿔 충돌 없이 만듭니다.
 슬러그가 primary worktree의 `main`과 충돌하면 자동으로 suffix를 붙여 세션 이름을 유일하게 유지합니다.
 
@@ -136,6 +137,7 @@ tmux attach -t myapp/feature-oauth
 ```
 
 각 worktree마다 전용 tmux 세션이 생깁니다. 세션 이름은 `repo-name + path hash` 네임스페이스와 슬러그를 함께 써서, 같은 저장소 이름이 다른 경로에 있어도 충돌을 피합니다.
+새 태스크용 worktree는 기본적으로 저장소 바깥의 `~/.tmux-worktrees/<repo-name-hash>/` 아래에 생성됩니다.
 
 ## 더 알아보기
 
