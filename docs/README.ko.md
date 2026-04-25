@@ -46,6 +46,7 @@ Claude Code, Codex, OpenCode, Gemini CLI 같은 AI 코딩 에이전트를 tmux �
 - **자동 연결** — worktree 폴더 열면 자동으로 세션 연결
 - **크기 안정화 연결** — attach 직전에 PTY 크기를 재시도 측정하고 대상 tmux 윈도우를 강제로 resize한 뒤 `window-size latest`를 복구해, 풀스크린 TUI의 80x24 초기 렌더링과 지속적인 화면 잘림을 함께 줄입니다
 - **프롬프트 안정화 연결** — tmux/zellij 세션을 붙이거나 만들기 전에 VS Code/Electron shell integration 환경 변수를 걷어내, multiplexer 안에서 redraw/드래그 선택/backspace 편집이 간헐적으로 깨지는 문제를 줄입니다
+- **Zellij 안전 부트스트랩** — 새 Zellij 세션을 `TERM=dumb` 대신 실제 터미널 타입으로 시작하고, attach 시 simplified UI를 요청해 VS Code 통합 터미널에서 프롬프트 redraw 깨짐과 glyph 네모 표시를 줄입니다
 
 ### 🧹 고아 세션 정리
 worktree가 삭제된 후 남아있는 tmux 세션을 찾아서 정리합니다. 환경을 깔끔하게 유지하세요.

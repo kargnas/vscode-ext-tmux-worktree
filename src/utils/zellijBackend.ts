@@ -17,6 +17,10 @@ const ZELLIJ_ENV_KEYS_TO_STRIP = [
   'VSCODE_INJECTION',
   'VSCODE_SHELL_INTEGRATION',
 ];
+const ZELLIJ_BOOTSTRAP_ENV = {
+  TERM: 'xterm-256color',
+  COLORTERM: 'truecolor',
+};
 
 function isZellijIntegrationEnvKey(key: string): boolean {
   return key.startsWith('VSCODE_') || ZELLIJ_ENV_KEYS_TO_STRIP.includes(key);
@@ -29,16 +33,20 @@ function getSanitizedZellijEnvKeys(): string[] {
   ]));
 }
 
-function buildSanitizedZellijCommand(command: string): string {
+function buildSanitizedZellijCommand(command: string, extraEnv: Record<string, string> = {}): string {
   const envKeys = getSanitizedZellijEnvKeys();
   const unsetArgs = envKeys.map((key) => `-u ${shellQuote(key)}`).join(' ');
   const envPrefix = unsetArgs.length > 0 ? `env ${unsetArgs}` : 'env';
-  return `${envPrefix} ZELLIJ_SOCKET_DIR=${shellQuote(ZELLIJ_SOCKET_DIR)} ${command}`;
+  const envAssignments = [
+    `ZELLIJ_SOCKET_DIR=${shellQuote(ZELLIJ_SOCKET_DIR)}`,
+    ...Object.entries(extraEnv).map(([key, value]) => `${key}=${shellQuote(value)}`),
+  ].join(' ');
+  return `${envPrefix} ${envAssignments} ${command}`;
 }
 
 function getSanitizedZellijTerminalEnv(): Record<string, string | null> {
   const env: Record<string, string | null> = {
-    TERM: 'xterm-256color',
+    ...ZELLIJ_BOOTSTRAP_ENV,
     ZELLIJ_SOCKET_DIR,
   };
   for (const key of getSanitizedZellijEnvKeys()) {
@@ -47,8 +55,8 @@ function getSanitizedZellijTerminalEnv(): Record<string, string | null> {
   return env;
 }
 
-function zellijExec(command: string, options?: ExecOptions): Promise<string> {
-  return exec(buildSanitizedZellijCommand(command), options);
+function zellijExec(command: string, options?: ExecOptions, extraEnv?: Record<string, string>): Promise<string> {
+  return exec(buildSanitizedZellijCommand(command, extraEnv), options);
 }
 
 // ─── Workdir Metadata Storage ─────────────────────────────
@@ -147,8 +155,15 @@ export class ZellijBackend implements MultiplexerBackend {
   }
 
   async createSession(sessionName: string, cwd: string): Promise<void> {
-    // -b flag = create detached session in background
-    await zellijExec(`zellij attach -b "${sessionName}"`, { cwd });
+    // Background-created Zellij sessions inherit TERM from the environment available
+    // at creation time. Without an explicit terminal type this can end up as TERM=dumb,
+    // which breaks prompt redraw and line editing in the initial shell pane even after
+    // a later GUI attach. Seed detached sessions with the same TERM the VS Code terminal uses.
+    await zellijExec(
+      `zellij attach -b "${sessionName}" options --simplified-ui true`,
+      { cwd },
+      ZELLIJ_BOOTSTRAP_ENV
+    );
   }
 
   async killSession(sessionName: string): Promise<void> {
@@ -227,7 +242,7 @@ export class ZellijBackend implements MultiplexerBackend {
     // --create: auto-create session if it doesn't exist
     // --force-run-commands: resurrect exited sessions immediately
     const escapedName = sessionName.replace(/'/g, "'\\''");
-    const attachCommand = `exec zellij attach --create --force-run-commands '${escapedName}'`;
+    const attachCommand = `exec zellij attach --create --force-run-commands '${escapedName}' options --simplified-ui true`;
 
     const terminal = vscode.window.createTerminal({
       name: terminalName,

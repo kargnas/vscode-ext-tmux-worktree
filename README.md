@@ -75,6 +75,7 @@ New task branches stay local-only until the first publish, so VS Code keeps show
 - **Auto-attach** — automatically connect when opening a worktree folder
 - **Size-stable attach** — retries PTY size sampling, force-resizes before attach, then restores `window-size latest` so full-screen TUIs avoid both 80x24 first paint and persistent clipping
 - **Prompt-stable attach** — strips VS Code/Electron shell-integration env before tmux/zellij session bootstrap so nested prompt markers do not corrupt redraw, selection, or backspace editing inside the multiplexer
+- **Zellij-safe bootstrap** — new Zellij sessions are seeded with a real terminal type instead of `TERM=dumb`, and the attach path requests Zellij's simplified UI so VS Code terminals avoid stale prompt redraw and missing-glyph squares
 
 ### 🧹 Orphan Cleanup
 Detect and clean up tmux sessions that no longer have matching worktrees. Keep your environment tidy.
