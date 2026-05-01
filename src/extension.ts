@@ -16,15 +16,23 @@ import {
 } from './commands/contextMenu';
 import { terminalSmartPaste, pasteImageForce, cleanupTempImages } from './commands/pasteImage';
 import { createWorktreeFromBranch } from './commands/createWorktreeFromBranch';
+import { syncZellijTerminalSettings } from './utils/zellijTerminalSettings';
 
 function updateViewDescription(treeView: vscode.TreeView<unknown>): void {
   const backend = getActiveBackend();
   treeView.description = `[${backend.displayName}]`;
 }
 
+function syncZellijTerminalSettingsForCurrentBackend(context: vscode.ExtensionContext): void {
+  syncZellijTerminalSettings(context, getConfiguredMultiplexerType()).catch((error) => {
+    console.error('Failed to sync Zellij terminal settings', error);
+  });
+}
+
 export function activate(context: vscode.ExtensionContext) {
   const sessionProvider = new TmuxSessionProvider();
   sessionProvider.setExtensionUri(context.extensionUri);
+  syncZellijTerminalSettingsForCurrentBackend(context);
   const treeView = vscode.window.createTreeView('tmuxSessions', {
     treeDataProvider: sessionProvider,
   });
@@ -82,6 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('tmuxWorktree.multiplexer')) {
         refreshBackendFromConfig();
+        syncZellijTerminalSettingsForCurrentBackend(context);
         updateViewDescription(treeView);
         sessionProvider.refresh();
       }

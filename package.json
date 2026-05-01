@@ -293,10 +293,6 @@
         }
       }
     ],
-    "configurationDefaults": {
-      "terminal.integrated.sendKeybindingsToShell": false,
-      "terminal.integrated.macOptionIsMeta": true
-    },
     "configuration": {
       "title": "TMUX Worktree",
       "properties": {
