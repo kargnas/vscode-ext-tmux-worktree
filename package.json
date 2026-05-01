@@ -147,8 +147,156 @@
         "when": "terminalFocus",
         "mac": "cmd+v",
         "linux": "ctrl+shift+v"
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+f",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bf"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+n",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bn"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+i",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bi"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+o",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bo"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+h",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bh"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+j",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bj"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+k",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bk"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+l",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bl"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+left",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b[1;3D"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+right",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b[1;3C"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+down",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b[1;3B"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+up",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b[1;3A"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+=",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b="
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+-",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b-"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+[",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b["
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+]",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b]"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+p",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bp"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "alt+shift+p",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001bP"
+        }
       }
     ],
+    "configurationDefaults": {
+      "terminal.integrated.sendKeybindingsToShell": false,
+      "terminal.integrated.macOptionIsMeta": true
+    },
     "configuration": {
       "title": "TMUX Worktree",
       "properties": {
