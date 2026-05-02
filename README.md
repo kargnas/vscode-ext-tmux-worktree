@@ -76,7 +76,7 @@ New task branches stay local-only until the first publish, so VS Code keeps show
 - **Size-stable attach** — retries PTY size sampling, force-resizes before attach, then restores `window-size latest` so full-screen TUIs avoid both 80x24 first paint and persistent clipping
 - **Prompt-stable attach** — strips VS Code/Electron shell-integration env before tmux/zellij session bootstrap so nested prompt markers do not corrupt redraw, selection, or backspace editing inside the multiplexer
 - **Zellij-safe bootstrap** — new Zellij sessions are seeded with a real terminal type instead of `TERM=dumb`, and the attach path requests Zellij's simplified UI so VS Code terminals avoid stale prompt redraw and missing-glyph squares
-- **Zellij Alt passthrough** — when the Zellij backend is selected, the extension contributes terminal-focus-only Alt shortcuts for Zellij's default shared keybindings and applies the needed terminal setting overrides only while Zellij is active
+- **Zellij key passthrough** — when the Zellij backend is selected, the extension contributes terminal-focus-only Alt shortcuts for Zellij's default shared keybindings plus Shift+Enter for console multiline input, and applies the needed terminal setting overrides only while Zellij is active
 
 ### 🧹 Orphan Cleanup
 Detect and clean up tmux sessions that no longer have matching worktrees. Keep your environment tidy.
