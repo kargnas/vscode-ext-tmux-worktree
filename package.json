@@ -150,6 +150,14 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
+        "key": "shift+enter",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b[13;2u"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
         "key": "alt+f",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
