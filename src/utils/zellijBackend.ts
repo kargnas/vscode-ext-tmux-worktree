@@ -5,6 +5,11 @@ import * as os from 'os';
 import { exec, ExecOptions } from './exec';
 import { MultiplexerBackend, MultiplexerSession, SessionStatusInfo } from './multiplexer';
 import { shellQuote } from './shell';
+import {
+  buildZellijBackgroundAttachCommand,
+  buildZellijInteractiveAttachCommand,
+  buildZellijKillSessionCommand,
+} from './zellijCommands';
 
 // Zellij derives its IPC socket path from $TMPDIR + session name.
 // macOS's $TMPDIR is deep (/var/folders/…/T/) so the full path easily
@@ -160,14 +165,14 @@ export class ZellijBackend implements MultiplexerBackend {
     // which breaks prompt redraw and line editing in the initial shell pane even after
     // a later GUI attach. Seed detached sessions with the same TERM the VS Code terminal uses.
     await zellijExec(
-      `zellij attach -b "${sessionName}" options --simplified-ui true`,
+      buildZellijBackgroundAttachCommand(sessionName),
       { cwd },
       ZELLIJ_BOOTSTRAP_ENV
     );
   }
 
   async killSession(sessionName: string): Promise<void> {
-    await zellijExec(`zellij kill-session "${sessionName}"`);
+    await zellijExec(buildZellijKillSessionCommand(sessionName));
     const store = readWorkdirStore();
     delete store[sessionName];
     writeWorkdirStore(store);
@@ -241,8 +246,7 @@ export class ZellijBackend implements MultiplexerBackend {
 
     // --create: auto-create session if it doesn't exist
     // --force-run-commands: resurrect exited sessions immediately
-    const escapedName = sessionName.replace(/'/g, "'\\''");
-    const attachCommand = `exec zellij attach --create --force-run-commands '${escapedName}' options --simplified-ui true`;
+    const attachCommand = buildZellijInteractiveAttachCommand(sessionName);
 
     const terminal = vscode.window.createTerminal({
       name: terminalName,
