@@ -158,6 +158,22 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
+        "key": "ctrl+q",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u0011"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "ctrl+g",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u0007"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
         "key": "alt+f",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {

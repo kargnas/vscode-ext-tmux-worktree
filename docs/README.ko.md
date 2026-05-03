@@ -48,7 +48,7 @@ Claude Code, Codex, OpenCode, Gemini CLI 같은 AI 코딩 에이전트를 tmux �
 - **프롬프트 안정화 연결** — tmux/zellij 세션을 붙이거나 만들기 전에 VS Code/Electron shell integration 환경 변수를 걷어내, multiplexer 안에서 redraw/드래그 선택/backspace 편집이 간헐적으로 깨지는 문제를 줄입니다
 - **Zellij 안전 부트스트랩** — 새 Zellij 세션을 `TERM=dumb` 대신 실제 터미널 타입으로 시작하고, attach 시 simplified UI를 요청해 VS Code 통합 터미널에서 프롬프트 redraw 깨짐과 glyph 네모 표시를 줄입니다
 - **Zellij 하이픈 세션명 안전 처리** — `.hermes` 같은 숨김 저장소 이름에서 만들어지는 `-...` 세션명을 Zellij가 CLI 옵션으로 오해하지 않게 attach해, Remote-SSH 에디터 탭에서 help가 떴다가 바로 닫히는 문제를 막습니다
-- **Zellij 키 전달** — Zellij backend를 선택하면 Zellij 기본 shared 단축키의 Alt 시리즈와 콘솔 멀티라인 입력용 Shift+Enter가 터미널 포커스에서 전달되도록 확장이 keybinding을 제공하고, 필요한 터미널 설정 override도 Zellij 활성 상태에서만 적용합니다
+- **Zellij 키 전달** — Zellij backend를 선택하면 Alt 시리즈, Ctrl+Q/Ctrl+G 전달, 콘솔 멀티라인 입력용 Shift+Enter가 터미널 포커스에서 전달되도록 확장이 keybinding을 제공하고, 필요한 터미널 설정 override도 Zellij 활성 상태에서만 적용합니다
 
 ### 🧹 고아 세션 정리
 worktree가 삭제된 후 남아있는 tmux 세션을 찾아서 정리합니다. 환경을 깔끔하게 유지하세요.

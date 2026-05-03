@@ -55,6 +55,7 @@ This document serves as the primary rule file for AI Agents working on this proj
 - **Async/Await**: Use `async/await` for all I/O operations in TypeScript.
 - **Terminal Creation**: Use `/bin/sh -c 'exec tmux attach ...'` instead of `shellPath: 'tmux'`. Direct `shellPath: 'tmux'` causes VS Code to treat it as a non-standard shell, breaking mouse drag events (pane resize). The `exec` replaces sh with tmux (no extra process), and `-c` avoids sendText race conditions with other extensions.
 - **Zellij Keybindings**: Keep Zellij default Alt pass-through shortcuts and console Shift+Enter passthrough as static `package.json` keybinding contributions scoped to `terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'`. Apply VS Code terminal setting overrides from `src/utils/zellijTerminalSettings.ts` only while the Zellij backend is active, then restore extension-applied global values when switching away.
+- **Zellij Control-Key Passthroughs**: Add requested control-key passthroughs as static `workbench.action.terminal.sendSequence` entries in `package.json`, scoped to `terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'`, and use the literal control sequence (`Ctrl+Q` = `\u0011`, `Ctrl+G` = `\u0007`) so VS Code forwards the intended byte to the terminal.
 - **No-Git Workspace Labeling**: If the workspace is not a git worktree, the tree must still show one primary item labeled `current project (no git)` mapped to the current workspace path.
 
 ## 3. Documentation & Development
