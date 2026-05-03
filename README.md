@@ -76,6 +76,7 @@ New task branches stay local-only until the first publish, so VS Code keeps show
 - **Size-stable attach** — retries PTY size sampling, force-resizes before attach, then restores `window-size latest` so full-screen TUIs avoid both 80x24 first paint and persistent clipping
 - **Prompt-stable attach** — strips VS Code/Electron shell-integration env before tmux/zellij session bootstrap so nested prompt markers do not corrupt redraw, selection, or backspace editing inside the multiplexer
 - **Zellij-safe bootstrap** — new Zellij sessions are seeded with a real terminal type instead of `TERM=dumb`, and the attach path requests Zellij's simplified UI so VS Code terminals avoid stale prompt redraw and missing-glyph squares
+- **Zellij leading-dash safety** — hidden repo names such as `.hermes` are attached without letting Zellij parse the generated session name as CLI flags, so Remote-SSH editor tabs do not flash help and immediately close
 - **Zellij key passthrough** — when the Zellij backend is selected, the extension contributes terminal-focus-only Alt shortcuts for Zellij's default shared keybindings plus Shift+Enter for console multiline input, and applies the needed terminal setting overrides only while Zellij is active
 
 ### 🧹 Orphan Cleanup
@@ -111,8 +112,9 @@ Detect and clean up tmux sessions that no longer have matching worktrees. Keep y
 | `TMUX: Smart Paste (Image Support)` | Smart terminal paste: text uses normal paste, image inserts temporary file path |
 | `TMUX: Paste Image from Clipboard` | Force image paste and insert the saved image path into the active terminal |
 
-## Recent Updates (v1.1.2 - v1.1.6)
+## Recent Updates (v1.1.2 - v1.2.8)
 
+- **v1.2.8**: Fixed Zellij attach for session names beginning with `-`, which can happen in Remote-SSH workspaces opened from hidden folders such as `.hermes`.
 - **v1.1.6**: Added image-aware terminal paste for AI CLI workflows (`Cmd+V` / `Ctrl+Shift+V`) and a force image paste command. Also improved startup auto-attach sizing stability to reduce occasional small terminal rendering until a manual window resize, fixed persistent clipping by restoring `window-size latest` after forced pre-attach resize, and fixed a shell-script parsing regression that could fail attach launch in some environments.
 - **v1.1.4 - v1.1.5**: Improved tmux clipboard reliability by enabling clipboard capabilities and passthrough options during attach.
 - **v1.1.3**: Refactored legacy session-prefix compatibility logic for safer migration.

@@ -47,6 +47,7 @@ Claude Code, Codex, OpenCode, Gemini CLI 같은 AI 코딩 에이전트를 tmux �
 - **크기 안정화 연결** — attach 직전에 PTY 크기를 재시도 측정하고 대상 tmux 윈도우를 강제로 resize한 뒤 `window-size latest`를 복구해, 풀스크린 TUI의 80x24 초기 렌더링과 지속적인 화면 잘림을 함께 줄입니다
 - **프롬프트 안정화 연결** — tmux/zellij 세션을 붙이거나 만들기 전에 VS Code/Electron shell integration 환경 변수를 걷어내, multiplexer 안에서 redraw/드래그 선택/backspace 편집이 간헐적으로 깨지는 문제를 줄입니다
 - **Zellij 안전 부트스트랩** — 새 Zellij 세션을 `TERM=dumb` 대신 실제 터미널 타입으로 시작하고, attach 시 simplified UI를 요청해 VS Code 통합 터미널에서 프롬프트 redraw 깨짐과 glyph 네모 표시를 줄입니다
+- **Zellij 하이픈 세션명 안전 처리** — `.hermes` 같은 숨김 저장소 이름에서 만들어지는 `-...` 세션명을 Zellij가 CLI 옵션으로 오해하지 않게 attach해, Remote-SSH 에디터 탭에서 help가 떴다가 바로 닫히는 문제를 막습니다
 - **Zellij 키 전달** — Zellij backend를 선택하면 Zellij 기본 shared 단축키의 Alt 시리즈와 콘솔 멀티라인 입력용 Shift+Enter가 터미널 포커스에서 전달되도록 확장이 keybinding을 제공하고, 필요한 터미널 설정 override도 Zellij 활성 상태에서만 적용합니다
 
 ### 🧹 고아 세션 정리
@@ -109,8 +110,9 @@ tmux attach -t myapp/feature-oauth
 | `TMUX: Smart Paste (Image Support)` | 스마트 터미널 붙여넣기: 텍스트는 일반 paste, 이미지는 임시 파일 경로 입력 |
 | `TMUX: Paste Image from Clipboard` | 클립보드 이미지를 강제로 저장하고 현재 터미널에 경로 입력 |
 
-## 최근 업데이트 (v1.1.2 - v1.1.6)
+## 최근 업데이트 (v1.1.2 - v1.2.8)
 
+- **v1.2.8**: `.hermes`처럼 숨김 폴더에서 열린 Remote-SSH workspace에서 `-`로 시작하는 Zellij 세션명을 attach할 때 help가 뜨고 바로 종료되던 문제를 수정했습니다.
 - **v1.1.6**: AI CLI 워크플로우를 위한 이미지 인식 터미널 붙여넣기(`Cmd+V` / `Ctrl+Shift+V`)와 강제 이미지 붙여넣기 명령 추가. 또한 시작 시 auto-attach 타이밍을 보정해, 가끔 터미널이 작게 렌더링되었다가 창 크기 조절 후 정상화되던 문제를 완화했고, 강제 resize 이후 `window-size latest`를 복구해 지속적인 화면 잘림을 줄였으며, 일부 환경에서 attach 실행이 실패하던 셸 스크립트 파싱 회귀도 수정했습니다.
 - **v1.1.4 - v1.1.5**: tmux attach 시 클립보드/패스스루 옵션을 자동 설정해 원격 환경 클립보드 신뢰성 개선.
 - **v1.1.3**: 레거시 세션 prefix 호환 로직 정리로 마이그레이션 안정성 개선.
