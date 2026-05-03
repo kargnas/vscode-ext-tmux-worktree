@@ -2,7 +2,7 @@
   "name": "vscode-tmux-worktree",
   "displayName": "TMUX Worktree",
   "description": "Manage tmux sessions with git worktrees",
-  "version": "1.2.9",
+  "version": "1.2.10",
   "engines": {
     "vscode": "^1.85.0"
   },
