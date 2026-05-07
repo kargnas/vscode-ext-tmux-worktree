@@ -150,7 +150,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "shift+enter",
+        "key": "shift+[Enter]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001b[13;2u"
@@ -158,7 +158,31 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "ctrl+q",
+        "key": "shift+[ArrowLeft]",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b[1;2D"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "shift+[ArrowRight]",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u001b[1;2C"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "ctrl+[KeyD]",
+        "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
+        "args": {
+          "text": "\u0004"
+        }
+      },
+      {
+        "command": "workbench.action.terminal.sendSequence",
+        "key": "ctrl+[KeyQ]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u0011"
@@ -166,7 +190,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "ctrl+g",
+        "key": "ctrl+[KeyG]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u0007"
@@ -174,7 +198,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+f",
+        "key": "alt+[KeyF]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bf"
@@ -182,7 +206,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+n",
+        "key": "alt+[KeyN]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bn"
@@ -190,7 +214,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+i",
+        "key": "alt+[KeyI]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bi"
@@ -198,7 +222,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+o",
+        "key": "alt+[KeyO]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bo"
@@ -206,7 +230,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+h",
+        "key": "alt+[KeyH]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bh"
@@ -214,7 +238,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+j",
+        "key": "alt+[KeyJ]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bj"
@@ -222,7 +246,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+k",
+        "key": "alt+[KeyK]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bk"
@@ -230,7 +254,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+l",
+        "key": "alt+[KeyL]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bl"
@@ -238,7 +262,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+left",
+        "key": "alt+[ArrowLeft]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001b[1;3D"
@@ -246,7 +270,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+right",
+        "key": "alt+[ArrowRight]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001b[1;3C"
@@ -254,7 +278,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+down",
+        "key": "alt+[ArrowDown]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001b[1;3B"
@@ -262,7 +286,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+up",
+        "key": "alt+[ArrowUp]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001b[1;3A"
@@ -270,7 +294,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+=",
+        "key": "alt+[Equal]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001b="
@@ -278,7 +302,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+-",
+        "key": "alt+[Minus]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001b-"
@@ -286,7 +310,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+[",
+        "key": "alt+[BracketLeft]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001b["
@@ -294,7 +318,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+]",
+        "key": "alt+[BracketRight]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001b]"
@@ -302,7 +326,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+p",
+        "key": "alt+[KeyP]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bp"
@@ -310,7 +334,7 @@
       },
       {
         "command": "workbench.action.terminal.sendSequence",
-        "key": "alt+shift+p",
+        "key": "alt+shift+[KeyP]",
         "when": "terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'",
         "args": {
           "text": "\u001bP"
@@ -415,7 +439,8 @@
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "lint": "eslint src --ext ts"
+    "lint": "eslint src --ext ts",
+    "generate:zellij-keybindings": "node scripts/generate-zellij-keybindings.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
