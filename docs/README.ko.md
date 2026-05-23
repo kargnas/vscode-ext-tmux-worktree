@@ -50,6 +50,12 @@ Claude Code, Codex, OpenCode, Gemini CLI 같은 AI 코딩 에이전트를 tmux �
 - **Zellij 하이픈 세션명 안전 처리** — `.hermes` 같은 숨김 저장소 이름에서 만들어지는 `-...` 세션명을 Zellij가 CLI 옵션으로 오해하지 않게 attach해, Remote-SSH 에디터 탭에서 help가 떴다가 바로 닫히는 문제를 막습니다
 - **Zellij 키 전달** — Zellij backend를 선택하면 키보드 레이아웃과 무관한 Alt 시리즈, Shift+Left/Shift+Right, Ctrl+D/Ctrl+Q/Ctrl+G 전달, 콘솔 멀티라인 입력용 Shift+Enter가 터미널 포커스에서 전달되도록 확장이 keybinding을 제공하고, 필요한 터미널 설정 override도 Zellij 활성 상태에서만 적용합니다
 
+### 🗂️ 세션 파일 디렉토리 설정
+- tmux/zellij IPC 소켓 저장 위치를 `tmuxWorktree.socketDir` (기본값 `/var/tmp`) 설정으로 지정합니다. `/tmp/` 대신 POSIX 표준 persistent-temp 디렉토리를 써서 재부팅 후에도 일정 기간 유지되고, macOS의 깊은 `$TMPDIR`가 103바이트 Unix 소켓 경로 제한을 넘는 문제도 회피합니다.
+- 첫 활성화 시 사용자에게 저장 위치를 묻습니다. **Enter**로 기본값 `/var/tmp` 사용, 또는 커스텀 경로(예: `~/.cache/sockets`) 입력. 디렉토리가 없으면 모달로 생성 확인을 받고 `mkdir -p` 합니다.
+- 디렉토리 확정 후, **Sync to Shell** 옵션으로 shell rc(`~/.zshrc`, `~/.bashrc`/`~/.bash_profile`, `~/.config/fish/config.fish`)에 관리되는 `export TMUX_TMPDIR=... ; export ZELLIJ_SOCKET_DIR=...` 블록을 기록할 수 있습니다. 다른 터미널에서 실행되는 tmux/zellij도 같은 디렉토리를 쓰게 됩니다. 기록 전에 타임스탬프 백업이 자동 생성됩니다.
+- 나중에 `TMUX: Change Session File Directory` 또는 `TMUX: Sync Session File Directory to Shell rc` 명령으로 언제든 변경할 수 있습니다.
+
 ### 🧹 고아 세션 정리
 worktree가 삭제된 후 남아있는 tmux 세션을 찾아서 정리합니다. 환경을 깔끔하게 유지하세요.
 

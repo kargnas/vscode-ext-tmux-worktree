@@ -138,6 +138,14 @@
         "command": "tmux.switchBackend",
         "title": "Switch Backend",
         "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "tmux.changeSocketDir",
+        "title": "TMUX: Change Session File Directory"
+      },
+      {
+        "command": "tmux.syncSocketDirToShell",
+        "title": "TMUX: Sync Session File Directory to Shell rc"
       }
     ],
     "keybindings": [
@@ -357,6 +365,16 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Override the base branch used when creating new task worktrees (e.g. `master`, `origin/master`). Leave empty to auto-detect from `origin/main`, `main`, `origin/master`, `master`."
+        },
+        "tmuxWorktree.socketDir": {
+          "type": "string",
+          "default": "/var/tmp",
+          "markdownDescription": "Directory for tmux/zellij session files (sockets). Zellij uses `${socketDir}/zellij/<session>`. Tmux is launched with `TMUX_TMPDIR=${socketDir}` so its sockets land in `${socketDir}/tmux-<UID>/`. `~` is expanded. Restart attached sessions to fully apply."
+        },
+        "tmuxWorktree.socketDirInitialized": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "Internal flag — set to `true` after the first-activation prompt completes. Reset to `false` to re-prompt on next activation."
         }
       }
     },

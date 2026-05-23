@@ -5,16 +5,25 @@ import * as os from 'os';
 import { exec, ExecOptions } from './exec';
 import { MultiplexerBackend, MultiplexerSession, SessionStatusInfo } from './multiplexer';
 import { shellQuote } from './shell';
+import { getZellijSocketDir, ensureSocketDirExists } from './socketDir';
 import {
   buildZellijBackgroundAttachCommand,
   buildZellijInteractiveAttachCommand,
   buildZellijKillSessionCommand,
 } from './zellijCommands';
 
-// Zellij derives its IPC socket path from $TMPDIR + session name.
-// macOS's $TMPDIR is deep (/var/folders/…/T/) so the full path easily
-// exceeds the Unix socket limit of 103-108 bytes. A short fixed dir avoids this.
-const ZELLIJ_SOCKET_DIR = '/tmp/zellij';
+// Zellij derives its IPC socket path from $ZELLIJ_SOCKET_DIR + session name.
+// macOS's $TMPDIR is deep (/var/folders/…/T/) so the full path easily exceeds the
+// Unix socket limit of 103-108 bytes — a user-configurable short dir avoids this.
+function ensureZellijSocketDir(): string {
+  const dir = getZellijSocketDir();
+  try {
+    ensureSocketDirExists(dir);
+  } catch {
+    // mkdir failure surfaces later via zellij itself; do not block command building.
+  }
+  return dir;
+}
 const ZELLIJ_ENV_KEYS_TO_STRIP = [
   'ELECTRON_RUN_AS_NODE',
   'TERM_PROGRAM',
@@ -39,11 +48,12 @@ function getSanitizedZellijEnvKeys(): string[] {
 }
 
 function buildSanitizedZellijCommand(command: string, extraEnv: Record<string, string> = {}): string {
+  const socketDir = ensureZellijSocketDir();
   const envKeys = getSanitizedZellijEnvKeys();
   const unsetArgs = envKeys.map((key) => `-u ${shellQuote(key)}`).join(' ');
   const envPrefix = unsetArgs.length > 0 ? `env ${unsetArgs}` : 'env';
   const envAssignments = [
-    `ZELLIJ_SOCKET_DIR=${shellQuote(ZELLIJ_SOCKET_DIR)}`,
+    `ZELLIJ_SOCKET_DIR=${shellQuote(socketDir)}`,
     ...Object.entries(extraEnv).map(([key, value]) => `${key}=${shellQuote(value)}`),
   ].join(' ');
   return `${envPrefix} ${envAssignments} ${command}`;
@@ -52,7 +62,7 @@ function buildSanitizedZellijCommand(command: string, extraEnv: Record<string, s
 function getSanitizedZellijTerminalEnv(): Record<string, string | null> {
   const env: Record<string, string | null> = {
     ...ZELLIJ_BOOTSTRAP_ENV,
-    ZELLIJ_SOCKET_DIR,
+    ZELLIJ_SOCKET_DIR: ensureZellijSocketDir(),
   };
   for (const key of getSanitizedZellijEnvKeys()) {
     env[key] = null;

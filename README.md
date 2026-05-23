@@ -79,6 +79,12 @@ New task branches stay local-only until the first publish, so VS Code keeps show
 - **Zellij leading-dash safety** — hidden repo names such as `.hermes` are attached without letting Zellij parse the generated session name as CLI flags, so Remote-SSH editor tabs do not flash help and immediately close
 - **Zellij key passthrough** — when the Zellij backend is selected, the extension contributes terminal-focus-only layout-independent Alt shortcuts, Shift+Left/Shift+Right, Ctrl+D/Ctrl+Q/Ctrl+G passthrough, and Shift+Enter for console multiline input, and applies the needed terminal setting overrides only while Zellij is active
 
+### 🗂️ Configurable Session File Directory
+- Tmux/zellij IPC sockets are stored in `tmuxWorktree.socketDir` (default `/var/tmp`) instead of `/tmp/`. The default is the POSIX persistent-temp directory, which survives reboots and avoids macOS' deep `$TMPDIR` exceeding the 103-byte Unix-socket path limit.
+- On first activation, the extension asks where to store session files. Press **Enter** to accept the default `/var/tmp`, or type a custom path (e.g. `~/.cache/sockets`). The dir is auto-created on confirmation if missing.
+- After confirming the directory, an optional **Sync to Shell** prompt writes a managed `export TMUX_TMPDIR=... ; export ZELLIJ_SOCKET_DIR=...` block to your shell rc (`~/.zshrc`, `~/.bashrc`/`~/.bash_profile`, or `~/.config/fish/config.fish`) so tmux/zellij in *other* terminals also use the same dir. A timestamped backup of the rc file is created before writing.
+- Change it later via `TMUX: Change Session File Directory` or `TMUX: Sync Session File Directory to Shell rc`.
+
 ### 🧹 Orphan Cleanup
 Detect and clean up tmux sessions that no longer have matching worktrees. Keep your environment tidy.
 
@@ -111,6 +117,8 @@ Detect and clean up tmux sessions that no longer have matching worktrees. Keep y
 | `TMUX: Cleanup Orphans` | Remove orphaned tmux sessions |
 | `TMUX: Smart Paste (Image Support)` | Smart terminal paste: text uses normal paste, image inserts temporary file path |
 | `TMUX: Paste Image from Clipboard` | Force image paste and insert the saved image path into the active terminal |
+| `TMUX: Change Session File Directory` | Change where tmux/zellij IPC sockets are stored (default `/var/tmp`) |
+| `TMUX: Sync Session File Directory to Shell rc` | Write `TMUX_TMPDIR`/`ZELLIJ_SOCKET_DIR` exports to your shell rc so external tmux/zellij use the same dir |
 
 ## Recent Updates (v1.1.2 - v1.2.8)
 

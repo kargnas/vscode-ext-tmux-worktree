@@ -17,6 +17,8 @@ import {
 import { terminalSmartPaste, pasteImageForce, cleanupTempImages } from './commands/pasteImage';
 import { createWorktreeFromBranch } from './commands/createWorktreeFromBranch';
 import { syncZellijTerminalSettings } from './utils/zellijTerminalSettings';
+import { promptForSocketDirIfNeeded, promptToChangeSocketDir } from './utils/socketDir';
+import { syncSocketDirToShell } from './commands/syncSocketDirToShell';
 
 function updateViewDescription(treeView: vscode.TreeView<unknown>): void {
   const backend = getActiveBackend();
@@ -81,8 +83,14 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand('tmux.newWindow', newWindow),
     vscode.commands.registerCommand('tmux.terminalPaste', terminalSmartPaste),
     vscode.commands.registerCommand('tmux.pasteImage', pasteImageForce),
-    vscode.commands.registerCommand('tmux.createWorktreeFromBranch', (item) => createWorktreeFromBranch(item))
+    vscode.commands.registerCommand('tmux.createWorktreeFromBranch', (item) => createWorktreeFromBranch(item)),
+    vscode.commands.registerCommand('tmux.changeSocketDir', promptToChangeSocketDir),
+    vscode.commands.registerCommand('tmux.syncSocketDirToShell', syncSocketDirToShell)
   );
+
+  // Run after command registration so the prompt's "Sync to Shell" follow-up can dispatch.
+  // Fire-and-forget: we never want the prompt to block tree loading or auto-attach.
+  void promptForSocketDirIfNeeded();
 
   autoAttachOnStartup();
 

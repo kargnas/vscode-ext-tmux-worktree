@@ -3,6 +3,7 @@ import { exec } from './exec';
 import { toCanonicalPath } from './path';
 import { shellQuote } from './shell';
 import { MultiplexerBackend, MultiplexerSession, SessionStatusInfo } from './multiplexer';
+import { getTmuxTmpDir, ensureSocketDirExists } from './socketDir';
 
 const TMUX_ENV_KEYS_TO_STRIP = [
   'ELECTRON_RUN_AS_NODE',
@@ -23,18 +24,41 @@ function getTmuxSanitizedEnvKeys(): string[] {
   ]));
 }
 
-function buildSanitizedTmuxCommand(command: string): string {
-  const envKeys = getTmuxSanitizedEnvKeys();
-  if (envKeys.length === 0) {
-    return `tmux ${command}`;
+// tmux only auto-creates the `tmux-<UID>` subdir; the parent (TMUX_TMPDIR) must exist
+// or tmux fails with "error connecting". Resolve + mkdir on every command so user
+// changes to `tmuxWorktree.socketDir` take effect without an extension restart.
+function ensureTmuxTmpDir(): string {
+  const dir = getTmuxTmpDir();
+  try {
+    ensureSocketDirExists(dir);
+  } catch {
+    // Surface the real error via tmux exit code so caller sees a meaningful message.
   }
+  return dir;
+}
+
+function buildSanitizedTmuxCommand(command: string): string {
+  const tmpDir = ensureTmuxTmpDir();
+  const envKeys = getTmuxSanitizedEnvKeys();
   const unsetArgs = envKeys.map((key) => `-u ${shellQuote(key)}`).join(' ');
-  return `env ${unsetArgs} tmux ${command}`;
+  const envPrefix = unsetArgs.length > 0 ? `env ${unsetArgs}` : 'env';
+  return `${envPrefix} TMUX_TMPDIR=${shellQuote(tmpDir)} tmux ${command}`;
+}
+
+// Read-only tmux queries: skip VSCODE_* unset (cheaper) but still pin TMUX_TMPDIR.
+function tmuxCmd(command: string): string {
+  const tmpDir = ensureTmuxTmpDir();
+  return `env TMUX_TMPDIR=${shellQuote(tmpDir)} tmux ${command}`;
 }
 
 function buildStoredTmuxEnvScrubCommand(sessionName?: string): string {
   const sessionTarget = sessionName ? ` -t ${shellQuote(sessionName)}` : '';
+  const tmpDir = ensureTmuxTmpDir();
   return [
+    // Pin TMUX_TMPDIR up-front so every tmux call below targets the configured socket dir,
+    // both when this script runs standalone (scrubStoredTmuxEnvironment) and when it is
+    // embedded inside the attach `/bin/sh -c` body.
+    `export TMUX_TMPDIR=${shellQuote(tmpDir)}`,
     // Extension-host / shell-integration env leaking into tmux makes nested shells
     // emit VS Code prompt markers, which breaks drag selection inside tmux panes.
     'for name in ELECTRON_RUN_AS_NODE TERM_PROGRAM TERM_PROGRAM_VERSION VSCODE_INJECTION VSCODE_SHELL_INTEGRATION; do',
@@ -85,7 +109,7 @@ export class TmuxBackend implements MultiplexerBackend {
 
   async listSessions(): Promise<MultiplexerSession[]> {
     try {
-      const output = await exec("tmux list-sessions -F '#{session_name}|||#{session_windows}|||#{session_attached}'");
+      const output = await exec(tmuxCmd("list-sessions -F '#{session_name}|||#{session_windows}|||#{session_attached}'"));
       return output.split('\n').filter(l => l.trim()).map(line => {
         const [name, windows, attached] = line.split('|||');
         return {
@@ -105,12 +129,12 @@ export class TmuxBackend implements MultiplexerBackend {
   }
 
   async killSession(sessionName: string): Promise<void> {
-    await exec(`tmux kill-session -t "${sessionName}"`);
+    await exec(tmuxCmd(`kill-session -t "${sessionName}"`));
   }
 
   async hasSession(sessionName: string): Promise<boolean> {
     try {
-      await exec(`tmux has-session -t "${sessionName}"`);
+      await exec(tmuxCmd(`has-session -t "${sessionName}"`));
       return true;
     } catch {
       return false;
@@ -119,7 +143,7 @@ export class TmuxBackend implements MultiplexerBackend {
 
   async getSessionWorkdir(sessionName: string): Promise<string | undefined> {
     try {
-      const output = await exec(`tmux show-options -t "${sessionName}" @workdir`);
+      const output = await exec(tmuxCmd(`show-options -t "${sessionName}" @workdir`));
       const parts = output.split(' ');
       if (parts.length >= 2) {
         const rawPath = parts.slice(1).join(' ').trim();
@@ -132,12 +156,12 @@ export class TmuxBackend implements MultiplexerBackend {
   }
 
   async setSessionWorkdir(sessionName: string, workdir: string): Promise<void> {
-    await exec(`tmux set-option -t "${sessionName}" @workdir "${workdir}"`);
+    await exec(tmuxCmd(`set-option -t "${sessionName}" @workdir "${workdir}"`));
   }
 
   async getSessionInfo(sessionName: string): Promise<SessionStatusInfo> {
     try {
-      const output = await exec(`tmux display-message -p -t "${sessionName}" '#{session_attached}|||#{session_activity}'`);
+      const output = await exec(tmuxCmd(`display-message -p -t "${sessionName}" '#{session_attached}|||#{session_activity}'`));
       const [attachedStr, activityStr] = output.split('|||');
       return {
         attached: attachedStr === '1',
@@ -150,7 +174,7 @@ export class TmuxBackend implements MultiplexerBackend {
 
   async getSessionPaneCount(sessionName: string): Promise<number> {
     try {
-      const output = await exec(`tmux list-panes -t "${sessionName}"`);
+      const output = await exec(tmuxCmd(`list-panes -t "${sessionName}"`));
       return output.split('\n').filter(l => l.trim()).length || 1;
     } catch {
       return 1;
@@ -159,7 +183,7 @@ export class TmuxBackend implements MultiplexerBackend {
 
   async getSessionPanePids(sessionName: string): Promise<string[]> {
     try {
-      const output = await exec(`tmux list-panes -t "${sessionName}" -F '#{pane_pid}'`);
+      const output = await exec(tmuxCmd(`list-panes -t "${sessionName}" -F '#{pane_pid}'`));
       return output.split('\n').filter(l => l.trim());
     } catch {
       return [];
@@ -178,7 +202,7 @@ export class TmuxBackend implements MultiplexerBackend {
     const existing = vscode.window.terminals.find(t => t.name === terminalName || t.name === oldName);
 
     if (existing) {
-      void exec(`tmux set-window-option -t "${sessionName}":. window-size latest`).catch(() => {});
+      void exec(tmuxCmd(`set-window-option -t "${sessionName}":. window-size latest`)).catch(() => {});
       const options = existing.creationOptions as vscode.TerminalOptions;
       if (options && options.location === location) {
         existing.show();
@@ -236,12 +260,12 @@ export class TmuxBackend implements MultiplexerBackend {
 
   async splitPane(sessionName: string, cwd?: string): Promise<void> {
     const cwdArg = cwd ? `-c "${cwd}"` : '';
-    await exec(`tmux split-window -t "${sessionName}" ${cwdArg}`);
+    await exec(tmuxCmd(`split-window -t "${sessionName}" ${cwdArg}`));
   }
 
   async newWindow(sessionName: string, cwd?: string): Promise<void> {
     const cwdArg = cwd ? `-c "${cwd}"` : '';
-    await exec(`tmux new-window -t "${sessionName}" ${cwdArg}`);
+    await exec(tmuxCmd(`new-window -t "${sessionName}" ${cwdArg}`));
   }
 
   buildSessionName(repoName: string, slug: string): string {
