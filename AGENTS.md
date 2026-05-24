@@ -40,7 +40,7 @@ This document serves as the primary rule file for AI Agents working on this proj
 - **Path Handling**: Use `getWorktreePath(item)` helper.
 - **Canonical Path Matching**: For path equality/deduplication/current-workspace checks, normalize to absolute paths with `~` expansion before comparison (do not collapse symlink aliases via `realpath`).
 - **Managed Worktree Location**: Create extension-managed worktrees under `~/.tmux-worktrees/<repo-name-hash>/` by default. Reuse shared helpers for path checks and orphan cleanup instead of hardcoding repo-local `.worktrees` path fragments.
-- **Session Namespace**: Build tmux session prefixes from repo-root identity (basename + short path hash), not display repo name alone, to avoid collisions across same-name repositories in different directories.
+- **Session Namespace**: Build tmux session prefixes from primary-worktree identity (basename + short path hash), not the current VS Code workspace folder or display repo name alone, to avoid collisions and linked-worktree drift. Use the shared async identity helpers instead of calling `getRepoRoot()` directly for namespace or managed-dir names.
 - **Zellij Leading-Dash Session Names**: Repo basenames such as `.hermes` can produce session names beginning with `-`. When passing those names to Zellij as positional arguments, insert `--`; shell quoting alone does not stop Zellij from parsing them as CLI flags.
 - **Legacy Session Compatibility Isolation**: Keep legacy session-prefix compatibility logic centralized in `src/utils/sessionCompatibility.ts`; call helpers from commands/providers instead of duplicating fallback checks.
 - **Root Detection**: Determine the primary worktree by comparing worktree path to the primary worktree path derived from `git rev-parse --git-common-dir`, not by branch naming, folder basename, or the current workspace folder.
@@ -57,6 +57,7 @@ This document serves as the primary rule file for AI Agents working on this proj
 - **Zellij Keybindings**: Manage Zellij passthrough shortcuts from `scripts/generate-zellij-keybindings.mjs`; do not hand-edit the generated `workbench.action.terminal.sendSequence` entries in `package.json`. Add new passthroughs to the script's `ZELLIJ_KEY_PASSTHROUGHS` list, prefer VS Code scan-code key strings for layout independence, then run `npm run generate:zellij-keybindings`. Keep all generated entries scoped to `terminalFocus && config.tmuxWorktree.multiplexer == 'zellij'`. Apply VS Code terminal setting overrides from `src/utils/zellijTerminalSettings.ts` only while the Zellij backend is active, then restore extension-applied global values when switching away.
 - **Zellij Control-Key Passthroughs**: Use literal control/escape sequences in `ZELLIJ_KEY_PASSTHROUGHS` so VS Code forwards the intended byte to the terminal. Prefer scan-code key strings for control and Alt shortcuts so Korean IME/layout variants map to the intended physical key without duplicate Hangul-specific bindings.
 - **No-Git Workspace Labeling**: If the workspace is not a git worktree, the tree must still show one primary item labeled `current project (no git)` mapped to the current workspace path.
+- **Package Hygiene**: Keep local orchestration/runtime state such as `.omx/` out of VSIX packages via `.vscodeignore`; git excludes alone do not affect packaging.
 
 ## 3. Documentation & Development
 

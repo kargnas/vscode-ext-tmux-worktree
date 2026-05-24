@@ -120,8 +120,9 @@ Detect and clean up tmux sessions that no longer have matching worktrees. Keep y
 | `TMUX: Change Session File Directory` | Change where tmux/zellij IPC sockets are stored (default `/var/tmp`) |
 | `TMUX: Sync Session File Directory to Shell rc` | Write `TMUX_TMPDIR`/`ZELLIJ_SOCKET_DIR` exports to your shell rc so external tmux/zellij use the same dir |
 
-## Recent Updates (v1.1.2 - v1.2.8)
+## Recent Updates (v1.1.2 - v1.2.12)
 
+- **v1.2.12**: Fixed session namespace stability when VS Code is opened from a linked worktree; session names and managed worktree paths now stay anchored to the primary worktree.
 - **v1.2.8**: Fixed Zellij attach for session names beginning with `-`, which can happen in Remote-SSH workspaces opened from hidden folders such as `.hermes`.
 - **v1.1.6**: Added image-aware terminal paste for AI CLI workflows (`Cmd+V` / `Ctrl+Shift+V`) and a force image paste command. Also improved startup auto-attach sizing stability to reduce occasional small terminal rendering until a manual window resize, fixed persistent clipping by restoring `window-size latest` after forced pre-attach resize, and fixed a shell-script parsing regression that could fail attach launch in some environments.
 - **v1.1.4 - v1.1.5**: Improved tmux clipboard reliability by enabling clipboard capabilities and passthrough options during attach.
