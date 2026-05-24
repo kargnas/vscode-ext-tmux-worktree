@@ -1,0 +1,64 @@
+name: Publish Open VSX
+
+on:
+  workflow_run:
+    workflows: ["Publish Extension"]
+    types: [completed]
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version label for the manually packaged VSIX (defaults to package.json version)"
+        required: false
+        type: string
+
+concurrency:
+  group: publish-open-vsx-${{ github.event.workflow_run.id || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-open-vsx:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Download VSIX from marketplace publish workflow
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: gh run download "$RUN_ID" --name vscode-tmux-worktree-vsix --dir dist
+
+      - name: Checkout for manual publish
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js for manual publish
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build VSIX for manual publish
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          npm ci
+          npm run compile
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(node -p "require('./package.json').version")
+          fi
+          mkdir -p dist
+          npx @vscode/vsce package --out "dist/vscode-tmux-worktree-${VERSION}.vsix"
+
+      - name: Publish to Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: npx --yes ovsx -p "$OVSX_PAT" publish --skip-duplicate dist/*.vsix

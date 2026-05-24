@@ -58,6 +58,7 @@ This document serves as the primary rule file for AI Agents working on this proj
 - **Zellij Control-Key Passthroughs**: Use literal control/escape sequences in `ZELLIJ_KEY_PASSTHROUGHS` so VS Code forwards the intended byte to the terminal. Prefer scan-code key strings for control and Alt shortcuts so Korean IME/layout variants map to the intended physical key without duplicate Hangul-specific bindings.
 - **No-Git Workspace Labeling**: If the workspace is not a git worktree, the tree must still show one primary item labeled `current project (no git)` mapped to the current workspace path.
 - **Package Hygiene**: Keep local orchestration/runtime state such as `.omx/` out of VSIX packages via `.vscodeignore`; git excludes alone do not affect packaging.
+- **Marketplace Publishing**: `publish.yml` owns version bump, VSIX packaging, VS Code Marketplace publishing, and GitHub releases. Open VSX publishing lives in `publish-open-vsx.yml` and consumes the uploaded VSIX artifact from the successful marketplace workflow so both registries receive the same package.
 
 ## 3. Documentation & Development
 

@@ -78,7 +78,7 @@ jobs:
             esac
             
             VERSION="${MAJOR}.${MINOR}.${PATCH}"
-            npm version $VERSION --no-git-tag-version
+            npm version "$VERSION" --no-git-tag-version
             
             git add package.json package-lock.json
             git commit -m "chore: release v${VERSION}"
@@ -87,7 +87,7 @@ jobs:
             git push origin "v${VERSION}"
           fi
           
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Compile
         run: npm run compile
@@ -95,13 +95,16 @@ jobs:
       - name: Package VSIX
         run: npx @vscode/vsce package --out "vscode-tmux-worktree-${{ steps.version.outputs.version }}.vsix"
 
-      - name: Publish to VS Code Marketplace
-        run: npx @vscode/vsce publish -p ${{ secrets.VSCE_PAT }}
-        continue-on-error: false
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-tmux-worktree-vsix
+          path: vscode-tmux-worktree-${{ steps.version.outputs.version }}.vsix
+          if-no-files-found: error
 
-      - name: Publish to Open VSX
-        run: npx ovsx publish "vscode-tmux-worktree-${{ steps.version.outputs.version }}.vsix" -p ${{ secrets.OVSX_PAT }}
-        continue-on-error: true
+      - name: Publish to VS Code Marketplace
+        run: npx @vscode/vsce publish --packagePath "vscode-tmux-worktree-${{ steps.version.outputs.version }}.vsix" -p ${{ secrets.VSCE_PAT }}
+        continue-on-error: false
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
