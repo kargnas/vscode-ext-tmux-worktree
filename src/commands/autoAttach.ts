@@ -15,7 +15,7 @@ export async function autoAttachOnStartup(): Promise<void> {
 
   const backend = getActiveBackend();
   const repoRoot = workspaceFolders[0].uri.fsPath;
-  const sessionPrefixConfig = createRepoSessionPrefixConfig(repoRoot);
+  const sessionPrefixConfig = await createRepoSessionPrefixConfig(repoRoot);
   const repoPrefix = sessionPrefixConfig.primaryPrefix;
 
   const sessions = await backend.listSessions();

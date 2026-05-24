@@ -89,7 +89,7 @@ export async function removeTask(item: TmuxItem): Promise<void> {
   try {
     const repoRoot = getRepoRoot();
     branchName = worktreePath ? await getWorktreeBranch(repoRoot, worktreePath) : undefined;
-    const sessionPrefixConfig = createRepoSessionPrefixConfig(repoRoot);
+    const sessionPrefixConfig = await createRepoSessionPrefixConfig(repoRoot);
     slug = slug || extractRepoSessionSlug(sessionName, sessionPrefixConfig, { allowLegacy: true });
   } catch {
     void 0;

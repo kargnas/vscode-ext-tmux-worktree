@@ -11,7 +11,7 @@ export async function cleanupOrphans(): Promise<void> {
   try {
     const backend = getActiveBackend();
     const repoRoot = getRepoRoot();
-    const sessionPrefixConfig = createRepoSessionPrefixConfig(repoRoot);
+    const sessionPrefixConfig = await createRepoSessionPrefixConfig(repoRoot);
     
     const allSessions = await backend.listSessions();
     const repoPrefix = sessionPrefixConfig.primaryPrefix;
@@ -44,7 +44,7 @@ export async function cleanupOrphans(): Promise<void> {
     const worktreeOnly: string[] = [];
     for (const wt of worktrees) {
       const normalizedWorktreePath = toCanonicalPath(wt.path) || path.resolve(wt.path);
-      if (isManagedWorktreePath(repoRoot, wt.path) && !sessionWorkdirs.has(normalizedWorktreePath)) {
+      if (await isManagedWorktreePath(repoRoot, wt.path) && !sessionWorkdirs.has(normalizedWorktreePath)) {
         worktreeOnly.push(wt.path);
       }
     }
