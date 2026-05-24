@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { createHash } from 'crypto';
 import { exec } from '../utils/exec';
-import { getRepoRoot, getRepoName, listWorktrees, Worktree, getBaseBranch } from '../utils/git';
+import { getRepoRoot, getRepoIdentityName, listWorktrees, Worktree, getBaseBranch } from '../utils/git';
 import { getActiveBackend, MultiplexerSession } from '../utils/multiplexer';
 import { toCanonicalPath } from '../utils/path';
 import { createRepoSessionPrefixConfig, matchRepoSessionName } from '../utils/sessionCompatibility';
@@ -677,7 +677,7 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
   private async getRepoGroups(): Promise<RepoGroupItem[]> {
     try {
       const repoRoot = getRepoRoot();
-      const repoName = getRepoName(repoRoot);
+      const repoName = await getRepoIdentityName(repoRoot);
       let baseBranch: string | undefined;
       try { baseBranch = await getBaseBranch(repoRoot); } catch { /* non-git or no default branch */ }
       return [new RepoGroupItem(repoName, repoRoot, baseBranch)];
@@ -698,7 +698,7 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
       const worktreeSlugByPath = buildWorktreeSlugMap(worktrees, repoName);
       this._error = undefined;
       const activeWorkspacePath = toCanonicalPath(repoRoot) || path.resolve(repoRoot);
-      const sessionPrefixConfig = createRepoSessionPrefixConfig(repoRoot);
+      const sessionPrefixConfig = await createRepoSessionPrefixConfig(repoRoot);
 
       const pathMap = new Map<string, { worktree?: Worktree, sessions: SessionWithStatus[], hasGit: boolean }>();
       const normalizedRepoRoot = sessionPrefixConfig.canonicalRepoRoot;

@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { getRepoName, getRepoSessionNamespace } from './git';
+import { getRepoIdentityRoot, getRepoSessionNamespaceForRoot } from './git';
 import { toCanonicalPath } from './path';
 import { getActiveBackend } from './multiplexer';
 
@@ -13,10 +13,11 @@ export interface RepoSessionPrefixConfig {
   legacyPrefix: string;
 }
 
-export function createRepoSessionPrefixConfig(repoRoot: string): RepoSessionPrefixConfig {
-  const canonicalRepoRoot = toCanonicalPath(repoRoot) || path.resolve(repoRoot);
-  const repoName = getRepoName(repoRoot);
-  const repoSessionNamespace = getRepoSessionNamespace(repoRoot);
+export async function createRepoSessionPrefixConfig(repoRoot: string): Promise<RepoSessionPrefixConfig> {
+  const identityRoot = await getRepoIdentityRoot(repoRoot);
+  const canonicalRepoRoot = toCanonicalPath(identityRoot) || path.resolve(identityRoot);
+  const repoName = path.basename(identityRoot);
+  const repoSessionNamespace = getRepoSessionNamespaceForRoot(identityRoot);
 
   return {
     repoName,

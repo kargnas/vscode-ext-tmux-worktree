@@ -116,8 +116,9 @@ tmux attach -t myapp/feature-oauth
 | `TMUX: Smart Paste (Image Support)` | 스마트 터미널 붙여넣기: 텍스트는 일반 paste, 이미지는 임시 파일 경로 입력 |
 | `TMUX: Paste Image from Clipboard` | 클립보드 이미지를 강제로 저장하고 현재 터미널에 경로 입력 |
 
-## 최근 업데이트 (v1.1.2 - v1.2.8)
+## 최근 업데이트 (v1.1.2 - v1.2.12)
 
+- **v1.2.12**: VS Code를 linked worktree에서 열었을 때 세션 namespace가 흔들리던 문제를 수정했습니다. 세션명과 관리형 worktree 경로가 이제 primary worktree 기준으로 고정됩니다.
 - **v1.2.8**: `.hermes`처럼 숨김 폴더에서 열린 Remote-SSH workspace에서 `-`로 시작하는 Zellij 세션명을 attach할 때 help가 뜨고 바로 종료되던 문제를 수정했습니다.
 - **v1.1.6**: AI CLI 워크플로우를 위한 이미지 인식 터미널 붙여넣기(`Cmd+V` / `Ctrl+Shift+V`)와 강제 이미지 붙여넣기 명령 추가. 또한 시작 시 auto-attach 타이밍을 보정해, 가끔 터미널이 작게 렌더링되었다가 창 크기 조절 후 정상화되던 문제를 완화했고, 강제 resize 이후 `window-size latest`를 복구해 지속적인 화면 잘림을 줄였으며, 일부 환경에서 attach 실행이 실패하던 셸 스크립트 파싱 회귀도 수정했습니다.
 - **v1.1.4 - v1.1.5**: tmux attach 시 클립보드/패스스루 옵션을 자동 설정해 원격 환경 클립보드 신뢰성 개선.

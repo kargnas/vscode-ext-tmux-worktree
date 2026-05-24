@@ -8,7 +8,7 @@ async function findSessionsForWorkspace(repoRoot: string): Promise<string[]> {
   const backend = getActiveBackend();
   const sessions = await backend.listSessions();
   const matchingSessions: string[] = [];
-  const sessionPrefixConfig = createRepoSessionPrefixConfig(repoRoot);
+  const sessionPrefixConfig = await createRepoSessionPrefixConfig(repoRoot);
   const repoPrefix = sessionPrefixConfig.primaryPrefix;
 
   for (const session of sessions) {

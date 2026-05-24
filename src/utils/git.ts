@@ -93,11 +93,41 @@ export function getRepoName(repoRoot: string): string {
   return path.basename(repoRoot);
 }
 
-export function getRepoSessionNamespace(repoRoot: string): string {
-  const canonicalRoot = toCanonicalPath(repoRoot) || path.resolve(repoRoot);
+export async function getPrimaryWorktreePath(repoRoot: string): Promise<string> {
+  try {
+    // Use the shared git dir to find the primary worktree, not the current one.
+    const commonDirRaw = await exec('git rev-parse --path-format=absolute --git-common-dir', { cwd: repoRoot })
+      .catch(() => exec('git rev-parse --git-common-dir', { cwd: repoRoot }));
+    const commonDir = commonDirRaw.trim();
+    if (!commonDir) return repoRoot;
+
+    const resolvedCommonDir = path.isAbsolute(commonDir)
+      ? commonDir
+      : path.resolve(repoRoot, commonDir);
+
+    return path.dirname(resolvedCommonDir);
+  } catch {
+    return repoRoot;
+  }
+}
+
+export async function getRepoIdentityRoot(repoRoot: string): Promise<string> {
+  return getPrimaryWorktreePath(repoRoot);
+}
+
+export async function getRepoIdentityName(repoRoot: string): Promise<string> {
+  return path.basename(await getRepoIdentityRoot(repoRoot));
+}
+
+export function getRepoSessionNamespaceForRoot(identityRoot: string): string {
+  const canonicalRoot = toCanonicalPath(identityRoot) || path.resolve(identityRoot);
   const repoName = getActiveBackend().sanitizeSessionName(path.basename(canonicalRoot) || 'repo');
   const rootHash = createHash('sha1').update(canonicalRoot).digest('hex').slice(0, 8);
   return `${repoName}-${rootHash}`;
+}
+
+export async function getRepoSessionNamespace(repoRoot: string): Promise<string> {
+  return getRepoSessionNamespaceForRoot(await getRepoIdentityRoot(repoRoot));
 }
 
 // Determine base branch by checking common default branch names in order
@@ -136,12 +166,12 @@ export function getManagedWorktreesRoot(): string {
   return path.join(os.homedir(), '.tmux-worktrees');
 }
 
-export function getManagedRepoWorktreesDir(repoRoot: string): string {
-  return path.join(getManagedWorktreesRoot(), getRepoSessionNamespace(repoRoot));
+export async function getManagedRepoWorktreesDir(repoRoot: string): Promise<string> {
+  return path.join(getManagedWorktreesRoot(), await getRepoSessionNamespace(repoRoot));
 }
 
-export function isManagedWorktreePath(repoRoot: string, worktreePath: string): boolean {
-  const managedDir = toCanonicalPath(getManagedRepoWorktreesDir(repoRoot));
+export async function isManagedWorktreePath(repoRoot: string, worktreePath: string): Promise<boolean> {
+  const managedDir = toCanonicalPath(await getManagedRepoWorktreesDir(repoRoot));
   const candidatePath = toCanonicalPath(worktreePath);
   if (!managedDir || !candidatePath) return false;
   return candidatePath === managedDir || candidatePath.startsWith(`${managedDir}${path.sep}`);
@@ -149,28 +179,11 @@ export function isManagedWorktreePath(repoRoot: string, worktreePath: string): b
 
 // Ensure the managed worktree directory exists.
 export async function ensureWorktreesDir(repoRoot: string): Promise<string> {
-  const worktreesDir = getManagedRepoWorktreesDir(repoRoot);
+  const worktreesDir = await getManagedRepoWorktreesDir(repoRoot);
   if (!fs.existsSync(worktreesDir)) {
     await fs.promises.mkdir(worktreesDir, { recursive: true });
   }
   return worktreesDir;
-}
-
-async function getMainWorktreePath(repoRoot: string): Promise<string> {
-  try {
-    // Use the shared git dir to find the primary worktree, not the current one.
-    const commonDirRaw = await exec('git rev-parse --git-common-dir', { cwd: repoRoot });
-    const commonDir = commonDirRaw.trim();
-    if (!commonDir) return repoRoot;
-
-    const resolvedCommonDir = path.isAbsolute(commonDir)
-      ? commonDir
-      : path.resolve(repoRoot, commonDir);
-
-    return path.dirname(resolvedCommonDir);
-  } catch {
-    return repoRoot;
-  }
 }
 
 // worktree 목록 조회 (prunable 제외)
@@ -179,7 +192,7 @@ export async function listWorktrees(repoRoot: string): Promise<Worktree[]> {
     const output = await exec('git worktree list --porcelain', { cwd: repoRoot });
     const worktrees: Worktree[] = [];
     const blocks = output.split('\n\n').filter(b => b.trim());
-    const mainWorktreePath = await getMainWorktreePath(repoRoot);
+    const mainWorktreePath = await getPrimaryWorktreePath(repoRoot);
     const normalizedMainWorktreePath = toCanonicalPath(mainWorktreePath) || path.resolve(mainWorktreePath);
     
     for (const block of blocks) {

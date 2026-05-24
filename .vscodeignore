@@ -8,6 +8,7 @@ node_modules/**
 cli/**
 cli_backup/**
 .sisyphus/**
+.omx/**
 .github/**
 docs/**
 scripts/**

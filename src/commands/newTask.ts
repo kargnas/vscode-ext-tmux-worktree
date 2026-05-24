@@ -22,7 +22,7 @@ export async function newTask(): Promise<void> {
   let repoSessionNamespace: string;
   try {
     repoRoot = getRepoRoot();
-    repoSessionNamespace = getRepoSessionNamespace(repoRoot);
+    repoSessionNamespace = await getRepoSessionNamespace(repoRoot);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     vscode.window.showErrorMessage(`Failed to create task: ${message}`);

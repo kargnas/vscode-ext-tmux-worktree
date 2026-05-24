@@ -51,7 +51,7 @@ export async function createWorktreeFromBranch(item: WorktreeItem | undefined): 
   let repoSessionNamespace: string;
   try {
     repoRoot = getRepoRoot();
-    repoSessionNamespace = getRepoSessionNamespace(repoRoot);
+    repoSessionNamespace = await getRepoSessionNamespace(repoRoot);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     vscode.window.showErrorMessage(`Failed: ${message}`);
