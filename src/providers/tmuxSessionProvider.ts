@@ -451,14 +451,20 @@ export class TmuxDetailItem extends TmuxItem {
     this.contextValue = 'tmuxItem';
 
     if (extensionUri) {
-      const iconPath = vscode.Uri.joinPath(
-        extensionUri,
-        'resources',
-        session.status.classification === 'stopped' ? 'tmux-inactive.svg' : 'tmux.svg'
-      );
-      this.iconPath = { light: iconPath, dark: iconPath };
+      if (session.status.classification === 'stopped') {
+        const iconPath = vscode.Uri.joinPath(extensionUri, 'resources', 'tmux-inactive.svg');
+        this.iconPath = { light: iconPath, dark: iconPath };
+      } else {
+        // Tree icons are rendered as background images, so `currentColor` never resolves to the
+        // theme foreground (it renders invisible on Remote-SSH). Ship explicit light/dark colored
+        // SVGs so the active session icon always renders, locally and over SSH.
+        this.iconPath = {
+          light: vscode.Uri.joinPath(extensionUri, 'resources', 'tmux-light.svg'),
+          dark: vscode.Uri.joinPath(extensionUri, 'resources', 'tmux-dark.svg')
+        };
+      }
     } else {
-      this.iconPath = new vscode.ThemeIcon('terminal-tmux');
+      this.iconPath = new vscode.ThemeIcon('terminal');
     }
 
     this.command = {
@@ -484,7 +490,7 @@ export class InactiveDetailItem extends TmuxItem {
       const iconPath = vscode.Uri.joinPath(extensionUri, 'resources', 'tmux-inactive.svg');
       this.iconPath = { light: iconPath, dark: iconPath };
     } else {
-      this.iconPath = new vscode.ThemeIcon('terminal-tmux');
+      this.iconPath = new vscode.ThemeIcon('terminal');
     }
 
     this.command = {
