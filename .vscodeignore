@@ -9,6 +9,9 @@ cli/**
 cli_backup/**
 .sisyphus/**
 .omx/**
+.omo/**
+vscode_docs_*.json
+vscode.proposed.*.d.ts
 .github/**
 docs/**
 scripts/**
