@@ -111,7 +111,11 @@
       },
       {
         "command": "tmux.newPane",
-        "title": "New Pane (Split)"
+        "title": "Split Pane (Down)"
+      },
+      {
+        "command": "tmux.newPaneHorizontal",
+        "title": "Split Pane (Right)"
       },
       {
         "command": "tmux.newWindow",
@@ -430,6 +434,11 @@
         },
         {
           "command": "tmux.newPane",
+          "when": "view == tmuxSessions && viewItem == tmuxItem",
+          "group": "3_tmux"
+        },
+        {
+          "command": "tmux.newPaneHorizontal",
           "when": "view == tmuxSessions && viewItem == tmuxItem",
           "group": "3_tmux"
         },

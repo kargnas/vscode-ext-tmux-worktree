@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { exec, ExecOptions } from './exec';
-import { MultiplexerBackend, MultiplexerSession, SessionStatusInfo } from './multiplexer';
+import { MultiplexerBackend, MultiplexerSession, SessionStatusInfo, TmuxWindow, TmuxPane } from './multiplexer';
 import { shellQuote } from './shell';
 import { getZellijSocketDir, ensureSocketDirExists } from './socketDir';
 import {
@@ -239,7 +239,8 @@ export class ZellijBackend implements MultiplexerBackend {
   attachSession(
     sessionName: string,
     cwd?: string,
-    location: vscode.TerminalLocation = vscode.TerminalLocation.Editor
+    location: vscode.TerminalLocation = vscode.TerminalLocation.Editor,
+    _windowIndex?: number
   ): vscode.Terminal {
     const shortName = getShortName(sessionName);
     const terminalName = shortName;
@@ -274,7 +275,15 @@ export class ZellijBackend implements MultiplexerBackend {
     return terminal;
   }
 
-  async splitPane(sessionName: string): Promise<void> {
+  async listWindows(_sessionName: string): Promise<TmuxWindow[]> {
+    return [];
+  }
+
+  async listPanes(_sessionName: string, _windowIndex: number): Promise<TmuxPane[]> {
+    return [];
+  }
+
+  async splitPane(sessionName: string, _cwd?: string, direction?: 'vertical' | 'horizontal'): Promise<void> {
     // `zellij action` only works from inside a session (ZELLIJ env var).
     // Find the VS Code terminal attached to this session and send the action.
     const shortName = getShortName(sessionName);
@@ -286,7 +295,8 @@ export class ZellijBackend implements MultiplexerBackend {
       return;
     }
     // Pipe through the attached terminal's zellij session
-    terminal.sendText('zellij action new-pane --direction down', true);
+    const dir = direction === 'horizontal' ? 'right' : 'down';
+    terminal.sendText(`zellij action new-pane --direction ${dir}`, true);
   }
 
   async newWindow(sessionName: string): Promise<void> {

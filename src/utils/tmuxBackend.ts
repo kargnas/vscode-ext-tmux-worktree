@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { exec } from './exec';
 import { toCanonicalPath } from './path';
 import { shellQuote } from './shell';
-import { MultiplexerBackend, MultiplexerSession, SessionStatusInfo } from './multiplexer';
+import { MultiplexerBackend, MultiplexerSession, SessionStatusInfo, TmuxWindow, TmuxPane } from './multiplexer';
 import { getTmuxTmpDir, ensureSocketDirExists } from './socketDir';
 
 const TMUX_ENV_KEYS_TO_STRIP = [
@@ -190,10 +190,45 @@ export class TmuxBackend implements MultiplexerBackend {
     }
   }
 
+  async listWindows(sessionName: string): Promise<TmuxWindow[]> {
+    try {
+      const output = await exec(tmuxCmd(`list-windows -t "${sessionName}" -F '#{window_index}|||#{window_name}|||#{window_panes}|||#{window_active}'`));
+      return output.split('\n').filter(l => l.trim()).map(line => {
+        const [index, name, paneCount, active] = line.split('|||');
+        return {
+          index: parseInt(index, 10),
+          name: name || 'unknown',
+          paneCount: parseInt(paneCount, 10) || 1,
+          active: active === '1',
+        };
+      });
+    } catch {
+      return [];
+    }
+  }
+
+  async listPanes(sessionName: string, windowIndex: number): Promise<TmuxPane[]> {
+    try {
+      const output = await exec(tmuxCmd(`list-panes -t "${sessionName}":${windowIndex} -F '#{pane_index}|||#{pane_current_command}|||#{pane_pid}|||#{pane_active}'`));
+      return output.split('\n').filter(l => l.trim()).map(line => {
+        const [index, command, pid, active] = line.split('|||');
+        return {
+          index: parseInt(index, 10),
+          currentCommand: command || '',
+          pid: pid || '',
+          active: active === '1',
+        };
+      });
+    } catch {
+      return [];
+    }
+  }
+
   attachSession(
     sessionName: string,
     cwd?: string,
-    location: vscode.TerminalLocation = vscode.TerminalLocation.Editor
+    location: vscode.TerminalLocation = vscode.TerminalLocation.Editor,
+    windowIndex?: number
   ): vscode.Terminal {
     const shortName = getShortName(sessionName);
     const terminalName = shortName;
@@ -246,7 +281,7 @@ export class TmuxBackend implements MultiplexerBackend {
       "if [ -n \"$rows\" ] && [ -n \"$cols\" ]; then tmux resize-window -t '" + escapedName + "':. -x \"$cols\" -y \"$rows\" >/dev/null 2>&1 || true; fi",
       "tmux set-window-option -t '" + escapedName + "':. window-size latest >/dev/null 2>&1 || true",
       "sleep 0.08",
-      `exec tmux attach -t '${escapedName}'`
+      `exec tmux attach -t '${escapedName}${windowIndex !== undefined ? ':' + windowIndex : ''}'`
     ].join('\n');
 
     const terminal = vscode.window.createTerminal({
@@ -270,9 +305,10 @@ export class TmuxBackend implements MultiplexerBackend {
     return terminal;
   }
 
-  async splitPane(sessionName: string, cwd?: string): Promise<void> {
+  async splitPane(sessionName: string, cwd?: string, direction?: 'vertical' | 'horizontal'): Promise<void> {
     const cwdArg = cwd ? `-c "${cwd}"` : '';
-    await exec(tmuxCmd(`split-window -t "${sessionName}" ${cwdArg}`));
+    const dirFlag = direction === 'horizontal' ? '-h' : '';
+    await exec(tmuxCmd(`split-window ${dirFlag} -t "${sessionName}" ${cwdArg}`));
   }
 
   async newWindow(sessionName: string, cwd?: string): Promise<void> {
