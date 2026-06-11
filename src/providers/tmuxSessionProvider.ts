@@ -449,7 +449,7 @@ export class TmuxDetailItem extends TmuxItem {
     }
 
     const label = parts.join(' · ');
-    super(label, vscode.TreeItemCollapsibleState.Collapsed, repoName, session.name);
+    super(label, vscode.TreeItemCollapsibleState.Expanded, repoName, session.name);
 
     this.worktreePath = session.worktreePath || worktree?.path;
     this.contextValue = 'tmuxItem';
