@@ -120,6 +120,48 @@ Detect and clean up tmux sessions that no longer have matching worktrees. Keep y
 | `TMUX: Change Session File Directory` | Change where tmux/zellij IPC sockets are stored (default `/var/tmp`) |
 | `TMUX: Sync Session File Directory to Shell rc` | Write `TMUX_TMPDIR`/`ZELLIJ_SOCKET_DIR` exports to your shell rc so external tmux/zellij use the same dir |
 
+## CLI: `tmux-worktree-tui`
+
+A standalone Go binary that mirrors the extension's session-naming and
+env-handling rules so you can attach to the same multiplexer session from
+any terminal — without opening VS Code.
+
+```bash
+cd cli && go install ./...    # installs ~/go/bin/tmux-worktree-tui
+```
+
+### Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `tmux-worktree-tui` | Launch the interactive worktree/session picker (Bubble Tea TUI) |
+| `tmux-worktree-tui open` | Attach to (or create) the tmux/zellij session that the VS Code extension would use for the current directory |
+
+### `open` flags
+
+| Flag | Description |
+|------|-------------|
+| `--multiplexer tmux\|zellij` | Override the multiplexer chosen by VS Code settings |
+| `--print` | Print the resolved session name, namespace, slug, and chosen multiplexer, then exit without attaching |
+
+### What `open` does for the current directory
+
+1. Resolves the **primary worktree** via `git rev-parse --git-common-dir`.
+   Non-git folders use the folder itself as the identity root.
+2. Computes the same `{basename}-{sha1[:8]}_{slug}` session name the
+   extension would compute.
+3. Reads `tmuxWorktree.multiplexer` and `tmuxWorktree.socketDir` from your
+   `.vscode/settings.json` first, then user-level VS Code / Insiders /
+   Cursor / Antigravity settings; falls back to `tmux` + `/var/tmp`.
+4. Sanitizes `VSCODE_*`, `ELECTRON_RUN_AS_NODE`, `TERM_PROGRAM*` from the
+   environment (and from a running tmux server) so newly attached panes
+   stay free of shell-integration markers.
+5. Handles zellij's leading-dash session-name quirk (e.g. `.hermes`) by
+   passing the name after `--`.
+6. Replaces the current process with `tmux new-session -A` / `zellij
+   attach --create` via `syscall.Exec`, or uses `tmux switch-client` when
+   already inside tmux.
+
 ## Recent Updates (v1.1.2 - v1.2.12)
 
 - **v1.2.12**: Fixed session namespace stability when VS Code is opened from a linked worktree; session names and managed worktree paths now stay anchored to the primary worktree.

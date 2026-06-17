@@ -116,6 +116,37 @@ tmux attach -t myapp/feature-oauth
 | `TMUX: Smart Paste (Image Support)` | 스마트 터미널 붙여넣기: 텍스트는 일반 paste, 이미지는 임시 파일 경로 입력 |
 | `TMUX: Paste Image from Clipboard` | 클립보드 이미지를 강제로 저장하고 현재 터미널에 경로 입력 |
 
+## CLI: `tmux-worktree-tui`
+
+VS Code를 열지 않고도 동일한 multiplexer 세션에 붙을 수 있게 해 주는 Go 바이너리입니다. 익스텐션과 똑같은 세션 명명 규칙과 환경변수 정리 로직을 사용하므로, 둘 중 어느 쪽에서 만든 세션이든 다른 쪽에서 그대로 attach할 수 있습니다.
+
+```bash
+cd cli && go install ./...    # ~/go/bin/tmux-worktree-tui 에 설치
+```
+
+### 서브커맨드
+
+| 명령어 | 설명 |
+|--------|------|
+| `tmux-worktree-tui` | 인터랙티브 worktree/세션 선택기(Bubble Tea TUI) 실행 |
+| `tmux-worktree-tui open` | 현재 디렉토리에 대해 익스텐션이 사용할 tmux/zellij 세션에 attach 또는 생성 |
+
+### `open` 플래그
+
+| 플래그 | 설명 |
+|--------|------|
+| `--multiplexer tmux\|zellij` | VS Code 설정의 multiplexer 값을 무시하고 강제로 선택 |
+| `--print` | 해석된 세션명, namespace, slug, 선택된 multiplexer를 출력하고 attach 없이 종료 |
+
+### `open` 의 동작 순서
+
+1. `git rev-parse --git-common-dir` 으로 **primary worktree 경로**를 찾음. git 저장소가 아닌 폴더는 폴더 자체를 identity root로 사용.
+2. 익스텐션과 동일한 `{basename}-{sha1[:8]}_{slug}` 세션명을 계산.
+3. `tmuxWorktree.multiplexer`, `tmuxWorktree.socketDir` 설정을 워크스페이스 `.vscode/settings.json` → 사용자 VS Code / Insiders / Cursor / Antigravity 설정 순으로 읽어옴. 못 찾으면 `tmux` + `/var/tmp` 가 기본값.
+4. `VSCODE_*`, `ELECTRON_RUN_AS_NODE`, `TERM_PROGRAM*` 같은 환경변수를 process env에서 제거하고, 이미 실행 중인 tmux 서버에서도 `set-environment -gu`로 청소해서 새 pane이 shell-integration 마커에 오염되지 않게 함.
+5. `.hermes` 같은 숨김 폴더에서 생기는 `-` 로 시작하는 zellij 세션명을 `--` 뒤로 보내 attach 안전성 확보.
+6. tmux 안에서 실행되면 `tmux switch-client` 로 처리하고, 그 외에는 `syscall.Exec` 로 `tmux new-session -A` 또는 `zellij attach --create` 를 현재 프로세스 자리에 직접 실행.
+
 ## 최근 업데이트 (v1.1.2 - v1.2.12)
 
 - **v1.2.12**: VS Code를 linked worktree에서 열었을 때 세션 namespace가 흔들리던 문제를 수정했습니다. 세션명과 관리형 worktree 경로가 이제 primary worktree 기준으로 고정됩니다.
