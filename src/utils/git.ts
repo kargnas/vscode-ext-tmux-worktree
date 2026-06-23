@@ -162,6 +162,15 @@ export async function localBranchExists(repoRoot: string, branchName: string): P
     return false;
   }
 }
+
+export async function listLocalBranches(repoRoot: string): Promise<string[]> {
+  try {
+    const output = await exec('git branch --format=\'%(refname:short)\'', { cwd: repoRoot });
+    return output.split('\n').map(b => b.trim()).filter(b => b.length > 0);
+  } catch {
+    return [];
+  }
+}
 export function getManagedWorktreesRoot(): string {
   return path.join(os.homedir(), '.tmux-worktrees');
 }

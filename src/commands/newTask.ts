@@ -6,6 +6,7 @@ import {
   getRepoRoot,
   getRepoSessionNamespace,
   isSlugTaken,
+  listLocalBranches,
   localBranchExists,
   validateBranchName
 } from '../utils/git';
@@ -29,18 +30,49 @@ export async function newTask(): Promise<void> {
     return;
   }
 
-  // 1. branch name 입력 받기
+  // 1. source branch 선택
+  const localBranches = await listLocalBranches(repoRoot);
+  if (localBranches.length === 0) {
+    vscode.window.showErrorMessage('No local branches found in repository');
+    return;
+  }
+
+  let suggestedBranch: string | undefined;
+  try {
+    const base = await getBaseBranch(repoRoot);
+    suggestedBranch = base.startsWith('origin/') ? base.slice(7) : base;
+  } catch {
+    // No suggested branch; show all alphabetically
+  }
+
+  const branchItems = localBranches.map(b => ({ label: b }));
+  if (suggestedBranch && localBranches.includes(suggestedBranch)) {
+    const idx = branchItems.findIndex(item => item.label === suggestedBranch);
+    if (idx > 0) {
+      const item = branchItems.splice(idx, 1)[0];
+      branchItems.unshift(item);
+    }
+  } else {
+    branchItems.sort((a, b) => a.label.localeCompare(b.label));
+  }
+
+  const selectedSource = await vscode.window.showQuickPick(branchItems, {
+    placeHolder: 'Select source branch for the new worktree'
+  });
+  if (!selectedSource) return;
+
+  // 2. branch name 입력 받기
   const branchInput = await vscode.window.showInputBox({
-    prompt: 'Enter branch name (e.g., "feat/auth", "task/my-task")',
+    prompt: `Create new branch from "${selectedSource.label}"`,
     placeHolder: 'feat/my-task',
     validateInput: (value) => {
       return validateBranchName(value);
     }
   });
 
-  if (!branchInput) return; // 취소됨
+  if (!branchInput) return;
 
-  // 2. branch name 정규화
+  // 3. branch name 정규화
   const branchName = branchInput.trim();
   const branchValidationError = validateBranchName(branchName);
   if (branchValidationError) {
@@ -53,8 +85,7 @@ export async function newTask(): Promise<void> {
       throw new Error(`Branch "${branchName}" already exists.`);
     }
 
-    // 3. 기준 브랜치 결정
-    const baseBranch = await getBaseBranch(repoRoot);
+    const baseBranch = selectedSource.label;
 
     // 4. session/worktree slug 충돌 확인 및 해결
     const slug = branchNameToSlug(branchName);
@@ -77,9 +108,9 @@ export async function newTask(): Promise<void> {
     backend.attachSession(sessionName, worktreePath);
 
     // 8. 성공 메시지
-    vscode.window.showInformationMessage(`Created task: ${branchName}`);
+    vscode.window.showInformationMessage(`Created task: ${branchName} (from ${baseBranch})`);
 
-    // 9. TreeView 갱신 (refresh 명령 호출)
+    // 9. TreeView 갱신
     vscode.commands.executeCommand('tmux.refresh');
 
   } catch (error) {
