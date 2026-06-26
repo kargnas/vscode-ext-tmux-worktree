@@ -10,6 +10,9 @@ cli_backup/**
 .sisyphus/**
 .omx/**
 .omo/**
+.codegraph
+.codegraph/**
+.worktrees/**
 vscode_docs_*.json
 vscode.proposed.*.d.ts
 .github/**

@@ -217,35 +217,21 @@ export class TmuxBackend implements MultiplexerBackend {
     const escapedName = sessionName.replace(/'/g, "'\\''");
     const attachCommand = [
       buildStoredTmuxEnvScrubCommand(sessionName),
-      // Clipboard path selection:
-      //   VS Code's xterm.js clipboard addon (@xterm/addon-clipboard) decodes
-      //   OSC52 base64 via atob() which is Latin-1 only. UTF-8 byte streams
-      //   (Korean, Chinese, emoji, arrows like →) get mojibake'd
-      //   (e.g. 천우 -> ì²ì°). To bypass that broken handler, route tmux's
-      //   default copy bindings through a real OS clipboard tool whenever one
-      //   is available; fall back to OSC52 (with mojibake) only when no tool
-      //   is reachable (typical headless server).
-      "_twt_copy_tool=''",
-      "if command -v pbcopy >/dev/null 2>&1; then _twt_copy_tool='pbcopy'",
-      "elif [ -n \"${WAYLAND_DISPLAY:-}\" ] && command -v wl-copy >/dev/null 2>&1; then _twt_copy_tool='wl-copy'",
-      "elif [ -n \"${DISPLAY:-}\" ] && command -v xclip >/dev/null 2>&1; then _twt_copy_tool='xclip -selection clipboard -in'",
-      "elif [ -n \"${DISPLAY:-}\" ] && command -v xsel >/dev/null 2>&1; then _twt_copy_tool='xsel --clipboard --input'",
-      "elif command -v clip.exe >/dev/null 2>&1; then _twt_copy_tool='clip.exe'",
-      "fi",
-      "if [ -n \"$_twt_copy_tool\" ]; then",
-      // copy-command makes default vi/emacs copy bindings and mouse drag end
-      // pipe the selection to this command instead of going through OSC52.
-      "  tmux set-option -gq copy-command \"$_twt_copy_tool\" >/dev/null 2>&1 || true",
-      "  tmux set-option -gq set-clipboard off >/dev/null 2>&1 || true",
-      "else",
-      "  tmux set-option -gq set-clipboard on >/dev/null 2>&1 || true",
-      "  tmux set-option -agq terminal-features ',xterm-256color:clipboard' >/dev/null 2>&1 || true",
-      "  tmux set-option -agq terminal-overrides ',*:clipboard' >/dev/null 2>&1 || true",
-      "fi",
-      // allow-passthrough lets TUI apps (e.g. Claude Code) emit their own
-      // OSC52 via the tmux passthrough wrapper. Those bytes still hit VS
-      // Code's broken atob handler, but disabling passthrough would silently
-      // drop the TUI's own copy attempts, which is worse than mojibake.
+      // Pure OSC 52 clipboard. DO NOT re-add pbcopy/xclip detection here: on
+      // Remote-SSH the tmux server is on the remote host, so remote `pbcopy`
+      // writes the remote clipboard and never reaches the user's local machine.
+      // OSC 52 (rendered by VS Code's local xterm) is the only path across SSH.
+      // The Korean/CJK mojibake that motivated the old pbcopy workaround was a VS
+      // Code 1.123–1.124 regression, fixed upstream in 1.125 (xterm.js PR #6002).
+      // set-clipboard is forced `on` unconditionally so this global option never
+      // oscillates between attaches; terminal-features adds the clipboard (Ms)
+      // cap missing from macOS terminfo; allow-passthrough lets TUI apps
+      // (Claude Code, neovim) emit their own DCS-wrapped OSC 52. The copy-command
+      // unset clears the stale pbcopy binding a prior extension version may have
+      // left on a long-lived server, so copy falls back to OSC 52 instead.
+      "tmux set-option -gu copy-command >/dev/null 2>&1 || true",
+      "tmux set-option -gq set-clipboard on >/dev/null 2>&1 || true",
+      "tmux set-option -agq terminal-features ',xterm-256color:clipboard' >/dev/null 2>&1 || true",
       "tmux set-option -gwq allow-passthrough on >/dev/null 2>&1 || true",
       "rows=''; cols=''",
       "for _ in 1 2 3 4 5; do",
