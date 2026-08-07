@@ -37,7 +37,7 @@ Claude Code, Codex, OpenCode, Gemini CLI 같은 AI 코딩 에이전트를 tmux �
 새 git 브랜치 + worktree + tmux 세션을 한 번에 만들 수 있어요. 새 기능 작업을 바로 시작하세요.
 기본 생성 위치는 `~/.tmux-worktrees/<repo-name-hash>/`라서 저장소 루트가 지저분해지지 않고, 여러 저장소 사이 경로 충돌도 피할 수 있습니다.
 `feat/auth`, `task/my-task` 같은 브랜치명도 그대로 입력할 수 있고, tmux 세션/worktree 슬러그는 `/`를 안전하게 `-`로 바꿔 충돌 없이 만듭니다.
-슬러그가 primary worktree의 `main`과 충돌하면 자동으로 suffix를 붙여 세션 이름을 유일하게 유지합니다.
+슬러그가 primary worktree의 슬러그와 충돌하면 자동으로 suffix를 붙여 세션 이름을 유일하게 유지합니다. primary worktree의 슬러그는 현재 브랜치 이름(예: `master`, `develop`)을 따라가며, 브랜치를 확인할 수 없을 때만 `main`으로 대체합니다.
 새 태스크 브랜치는 첫 publish 전까지 로컬 브랜치로만 유지해서, VS Code가 아직 없는 리모트 브랜치와 Sync를 시도하지 않고 **Publish Branch**를 계속 보여줍니다. 대신 `branch.<name>.vscode-merge-base`에 비교 기준 브랜치를 저장해 SCM diff 기준은 유지합니다.
 
 ### 🔗 스마트 연결
@@ -83,7 +83,7 @@ worktree가 삭제된 후 남아있는 tmux 세션을 찾아서 정리합니다.
 ### 🤖 AI 에이전트로 여러 브랜치 동시 개발
 ```
 프로젝트/
-├── main              → tmux: "myapp/main" (Claude Code가 리팩토링 중)
+├── master            → tmux: "myapp/master" (Claude Code가 리팩토링 중)
 ├── feature/oauth     → tmux: "myapp/feature-oauth" (직접 코딩)
 └── fix/memory-leak   → tmux: "myapp/fix-memory-leak" (Codex가 분석 중)
 ```
@@ -175,7 +175,7 @@ cd cli && go install ./...    # ~/go/bin/tmux-worktree-tui 에 설치
 
 ```
 저장소 (루트)
-├── main              → tmux 세션: "project-a1b2c3d4_main"
+├── master            → tmux 세션: "project-a1b2c3d4_master"
 ├── feature/login     → tmux 세션: "project-a1b2c3d4_feature-login"
 └── fix/bug-123       → tmux 세션: "project-a1b2c3d4_fix-bug-123"
 ```

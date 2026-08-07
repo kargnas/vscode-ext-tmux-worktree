@@ -38,7 +38,10 @@ function isCurrentWorkspacePath(targetPath: string | undefined, activeWorkspaceP
 }
 
 function getDefaultWorktreeSlug(worktree: Worktree, repoName: string): string {
-  if (worktree.isMain) return 'main';
+  // The primary worktree follows the unified branch-based slug rule: its slug is
+  // its current branch name (e.g. "master", "develop"), falling back to "main"
+  // only when no branch can be resolved (detached HEAD / empty repository).
+  if (worktree.isMain) return worktree.branch || 'main';
 
   const baseName = path.basename(worktree.path);
   if (baseName !== repoName) return baseName;
@@ -76,8 +79,9 @@ function buildWorktreeSlugMap(worktrees: Worktree[], repoName: string): Map<stri
     const normalizedPath = toCanonicalPath(worktree.path);
     if (!normalizedPath) continue;
     if (worktree.isMain) {
-      slugByPath.set(normalizedPath, 'main');
-      rememberSlug('main');
+      const primarySlug = worktree.branch || 'main';
+      slugByPath.set(normalizedPath, primarySlug);
+      rememberSlug(primarySlug);
       continue;
     }
     pending.push({ worktree, slug: getDefaultWorktreeSlug(worktree, repoName) });
