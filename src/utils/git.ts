@@ -130,28 +130,57 @@ export async function getRepoSessionNamespace(repoRoot: string): Promise<string>
   return getRepoSessionNamespaceForRoot(await getRepoIdentityRoot(repoRoot));
 }
 
-// Determine base branch by checking common default branch names in order
+async function resolveRef(repoRoot: string, ref: string): Promise<string | undefined> {
+  try {
+    await exec(`git rev-parse --verify ${ref}`, { cwd: repoRoot });
+    return ref;
+  } catch {
+    return undefined;
+  }
+}
+
+// Determine base branch by detecting the actual default branch:
+// 1. configured override, 2. the git primary worktree's current branch,
+// 3. origin's HEAD symref, 4. current branch name, 5. common default branch names.
 export async function getBaseBranch(repoRoot: string): Promise<string> {
   const override = vscode.workspace.getConfiguration('tmuxWorktree').get<string>('baseBranch');
   if (override) {
-    try {
-      await exec(`git rev-parse --verify ${override}`, { cwd: repoRoot });
-      return override;
-    } catch {
-      throw new Error(`Configured baseBranch "${override}" not found in repository`);
+    const resolved = await resolveRef(repoRoot, override);
+    if (resolved) return resolved;
+    throw new Error(`Configured baseBranch "${override}" not found in repository`);
+  }
+
+  // The unified default branch is the current branch of the git primary worktree.
+  try {
+    const primaryPath = await getPrimaryWorktreePath(repoRoot);
+    const primaryBranch = await getWorktreeBranch(repoRoot, primaryPath);
+    if (primaryBranch) return primaryBranch;
+  } catch {
+    // fall through to remote HEAD / current branch detection
+  }
+
+  try {
+    const originHead = (await exec('git symbolic-ref refs/remotes/origin/HEAD', { cwd: repoRoot })).trim();
+    if (originHead.startsWith('refs/remotes/')) {
+      return originHead.replace(/^refs\/remotes\//, '');
     }
+  } catch {
+    // no origin remote or no default branch symref
+  }
+
+  try {
+    const currentBranch = (await exec('git symbolic-ref --short HEAD', { cwd: repoRoot })).trim();
+    if (currentBranch) return currentBranch;
+  } catch {
+    // detached HEAD or no commits yet
   }
 
   const candidates = ['origin/main', 'main', 'origin/master', 'master'];
   for (const candidate of candidates) {
-    try {
-      await exec(`git rev-parse --verify ${candidate}`, { cwd: repoRoot });
-      return candidate;
-    } catch {
-      // try next candidate
-    }
+    const resolved = await resolveRef(repoRoot, candidate);
+    if (resolved) return resolved;
   }
-  throw new Error('No default branch found (tried: origin/main, main, origin/master, master)');
+  throw new Error('No default branch found (tried: origin/HEAD, current branch, origin/main, main, origin/master, master)');
 }
 
 export async function localBranchExists(repoRoot: string, branchName: string): Promise<boolean> {
@@ -160,6 +189,15 @@ export async function localBranchExists(repoRoot: string, branchName: string): P
     return output.split('\n').some(line => line.trim() === branchName);
   } catch {
     return false;
+  }
+}
+
+export async function listLocalBranches(repoRoot: string): Promise<string[]> {
+  try {
+    const output = await exec('git branch --format=\'%(refname:short)\'', { cwd: repoRoot });
+    return output.split('\n').map(b => b.trim()).filter(b => b.length > 0);
+  } catch {
+    return [];
   }
 }
 export function getManagedWorktreesRoot(): string {
@@ -258,8 +296,9 @@ export async function isSlugTaken(slug: string, repoSessionNamespace: string, re
     return normalizedPath === normalizedCandidatePath;
   });
   const backend = getActiveBackend();
-  const reservedPrimarySlug = backend.sanitizeSessionName(slug) === backend.sanitizeSessionName('main') &&
-    worktrees.some(worktree => worktree.isMain);
+  const primaryWorktree = worktrees.find(worktree => worktree.isMain);
+  const reservedPrimarySlug = !!primaryWorktree &&
+    backend.sanitizeSessionName(slug) === backend.sanitizeSessionName(primaryWorktree.branch || 'main');
   if (worktreePathExists || reservedPrimarySlug || fs.existsSync(candidatePath)) return true;
 
   // 2. 세션에서 확인

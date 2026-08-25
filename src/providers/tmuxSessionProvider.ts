@@ -4,7 +4,7 @@ import * as path from 'path';
 import { createHash } from 'crypto';
 import { exec } from '../utils/exec';
 import { getRepoRoot, getRepoIdentityName, listWorktrees, Worktree, getBaseBranch } from '../utils/git';
-import { getActiveBackend, MultiplexerSession } from '../utils/multiplexer';
+import { getActiveBackend, MultiplexerSession, TmuxWindow, TmuxPane } from '../utils/multiplexer';
 import { toCanonicalPath } from '../utils/path';
 import { createRepoSessionPrefixConfig, matchRepoSessionName } from '../utils/sessionCompatibility';
 
@@ -38,7 +38,10 @@ function isCurrentWorkspacePath(targetPath: string | undefined, activeWorkspaceP
 }
 
 function getDefaultWorktreeSlug(worktree: Worktree, repoName: string): string {
-  if (worktree.isMain) return 'main';
+  // The primary worktree follows the unified branch-based slug rule: its slug is
+  // its current branch name (e.g. "master", "develop"), falling back to "main"
+  // only when no branch can be resolved (detached HEAD / empty repository).
+  if (worktree.isMain) return worktree.branch || 'main';
 
   const baseName = path.basename(worktree.path);
   if (baseName !== repoName) return baseName;
@@ -76,8 +79,9 @@ function buildWorktreeSlugMap(worktrees: Worktree[], repoName: string): Map<stri
     const normalizedPath = toCanonicalPath(worktree.path);
     if (!normalizedPath) continue;
     if (worktree.isMain) {
-      slugByPath.set(normalizedPath, 'main');
-      rememberSlug('main');
+      const primarySlug = worktree.branch || 'main';
+      slugByPath.set(normalizedPath, primarySlug);
+      rememberSlug(primarySlug);
       continue;
     }
     pending.push({ worktree, slug: getDefaultWorktreeSlug(worktree, repoName) });
@@ -423,6 +427,8 @@ export class WorktreeItem extends TmuxItem {
 }
 
 export class TmuxDetailItem extends TmuxItem {
+  public readonly worktreePath?: string;
+
   constructor(
     public readonly session: SessionWithStatus,
     public readonly repoName: string,
@@ -434,6 +440,7 @@ export class TmuxDetailItem extends TmuxItem {
     if (session.status.classification === 'stopped') {
       parts.push('stopped');
     } else {
+      parts.push(`${session.windows}w`);
       parts.push(`${session.status.panes}p`);
       parts.push(formatLastActive(session.status.lastActive));
       if (session.status.cpuUsage > 0) {
@@ -446,8 +453,9 @@ export class TmuxDetailItem extends TmuxItem {
     }
 
     const label = parts.join(' · ');
-    super(label, vscode.TreeItemCollapsibleState.None, repoName, session.name);
+    super(label, vscode.TreeItemCollapsibleState.Expanded, repoName, session.name);
 
+    this.worktreePath = session.worktreePath || worktree?.path;
     this.contextValue = 'tmuxItem';
 
     if (extensionUri) {
@@ -636,6 +644,50 @@ export class InactiveWorktreeDetailItem extends InactiveDetailItem {
   }
 }
 
+export class TmuxWindowItem extends TmuxItem {
+  public readonly window: TmuxWindow;
+  public readonly worktreePath?: string;
+
+  constructor(
+    window: TmuxWindow,
+    sessionName: string,
+    repoName: string,
+    worktreePath?: string
+  ) {
+    const label = `@${window.index}: ${window.name} · ${window.paneCount}p`;
+    super(label, vscode.TreeItemCollapsibleState.Expanded, repoName, sessionName);
+    this.window = window;
+    this.worktreePath = worktreePath;
+    this.contextValue = 'tmuxItem';
+  }
+}
+
+export class TmuxPaneItem extends TmuxItem {
+  public readonly pane: TmuxPane;
+  public readonly worktreePath?: string;
+
+  constructor(
+    pane: TmuxPane,
+    sessionName: string,
+    repoName: string,
+    windowIndex: number,
+    worktreePath?: string
+  ) {
+    const description = pane.pid ? `PID ${pane.pid}` : undefined;
+    const label = `${pane.index}: ${pane.currentCommand || '?'}`;
+    super(label, vscode.TreeItemCollapsibleState.None, repoName, sessionName);
+    this.pane = pane;
+    this.worktreePath = worktreePath;
+    this.contextValue = 'tmuxItem';
+    this.description = description;
+    this.command = {
+      command: 'tmux.attach',
+      title: 'Attach to Pane',
+      arguments: [this]
+    };
+  }
+}
+
 // ─── Provider ─────────────────────────────────────────────
 
 export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
@@ -675,6 +727,14 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
       const children: TmuxItem[] = [element.detailItem];
       if (element.gitStatusItem) children.push(element.gitStatusItem);
       return children;
+    }
+
+    if (element instanceof TmuxDetailItem) {
+      return this.getWindowItems(element);
+    }
+
+    if (element instanceof TmuxWindowItem) {
+      return this.getPaneItems(element);
     }
 
     return [];
@@ -865,6 +925,23 @@ export class TmuxSessionProvider implements vscode.TreeDataProvider<TmuxItem> {
       this._error = err instanceof Error ? err.message : String(err);
       return [];
     }
+  }
+
+  private async getWindowItems(detail: TmuxDetailItem): Promise<TmuxWindowItem[]> {
+    const backend = getActiveBackend();
+    const sessionName = detail.sessionName;
+    if (!sessionName) return [];
+    const windows = await backend.listWindows(sessionName);
+    const worktreePath = detail.worktreePath;
+    return windows.map(w => new TmuxWindowItem(w, sessionName, detail.repoName || '', worktreePath));
+  }
+
+  private async getPaneItems(windowItem: TmuxWindowItem): Promise<TmuxPaneItem[]> {
+    const backend = getActiveBackend();
+    const sessionName = windowItem.sessionName;
+    if (!sessionName || windowItem.window.index === undefined) return [];
+    const panes = await backend.listPanes(sessionName, windowItem.window.index);
+    return panes.map(p => new TmuxPaneItem(p, sessionName, windowItem.repoName || '', windowItem.window.index, windowItem.worktreePath));
   }
 
   private sortAndFilter(items: TmuxItem[]): TmuxItem[] {

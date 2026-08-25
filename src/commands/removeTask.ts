@@ -10,6 +10,8 @@ import {
   WorktreeItem,
   TmuxDetailItem,
   InactiveDetailItem,
+  TmuxWindowItem,
+  TmuxPaneItem,
   GitStatusItem,
 } from "../providers/tmuxSessionProvider";
 import * as path from "path";
@@ -83,6 +85,10 @@ export async function removeTask(item: TmuxItem): Promise<void> {
   } else if (item instanceof WorktreeItem) {
     worktreePath = item.worktreePath;
   } else if (item instanceof GitStatusItem) {
+    worktreePath = item.worktreePath;
+  } else if (item instanceof TmuxWindowItem) {
+    worktreePath = item.worktreePath;
+  } else if (item instanceof TmuxPaneItem) {
     worktreePath = item.worktreePath;
   }
 

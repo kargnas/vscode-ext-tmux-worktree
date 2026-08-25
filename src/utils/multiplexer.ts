@@ -17,6 +17,20 @@ export interface SessionStatusInfo {
   lastActive: number; // unix timestamp (seconds)
 }
 
+export interface TmuxWindow {
+  index: number;
+  name: string;
+  paneCount: number;
+  active: boolean;
+}
+
+export interface TmuxPane {
+  index: number;
+  currentCommand: string;
+  pid: string;
+  active: boolean;
+}
+
 // ─── Backend Interface ────────────────────────────────────
 
 /**
@@ -63,12 +77,20 @@ export interface MultiplexerBackend {
   attachSession(
     sessionName: string,
     cwd?: string,
-    location?: vscode.TerminalLocation
+    location?: vscode.TerminalLocation,
+    windowIndex?: number
   ): vscode.Terminal;
+
+  // ── Window / Pane Introspection ──
+
+  /** Returns windows for the given session (tmux only; zellij returns []). */
+  listWindows(sessionName: string): Promise<TmuxWindow[]>;
+  /** Returns panes for a given window in the given session (tmux only; zellij returns []). */
+  listPanes(sessionName: string, windowIndex: number): Promise<TmuxPane[]>;
 
   // ── Pane / Window (Tab) Operations ──
 
-  splitPane(sessionName: string, cwd?: string): Promise<void>;
+  splitPane(sessionName: string, cwd?: string, direction?: 'vertical' | 'horizontal'): Promise<void>;
   /** tmux: new-window, zellij: new-tab */
   newWindow(sessionName: string, cwd?: string): Promise<void>;
 

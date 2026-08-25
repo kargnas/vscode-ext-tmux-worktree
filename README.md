@@ -36,7 +36,7 @@ Run AI coding agents (Claude Code, Codex, OpenCode, Gemini CLI) inside tmux sess
 **🤖 Parallel Development with AI Agents**
 ```
 project/
-├── main              → tmux: "myapp/main" (Claude Code refactoring)
+├── master            → tmux: "myapp/master" (Claude Code refactoring)
 ├── feature/oauth     → tmux: "myapp/feature-oauth" (manual coding)
 └── fix/memory-leak   → tmux: "myapp/fix-memory-leak" (Codex analyzing)
 ```
@@ -66,7 +66,7 @@ A dedicated sidebar showing all your git worktrees and their associated tmux ses
 Create a new git branch + worktree + tmux session in one step. Start working on a new feature instantly.
 Managed worktrees are created under `~/.tmux-worktrees/<repo-name-hash>/` by default, which keeps repository roots clean and avoids cross-repo path collisions.
 Enter any valid branch name such as `feat/auth` or `task/my-task`; tmux session/worktree slugs safely flatten `/` into `-`.
-If a task slug would collide with the primary worktree slug like `main`, the extension auto-suffixes it to keep sessions unique.
+If a task slug would collide with the primary worktree slug, the extension auto-suffixes it to keep sessions unique. The primary worktree's slug is its current branch name (e.g. `master`, `develop`) so sessions follow the real default branch, falling back to `main` only when no branch can be resolved.
 New task branches stay local-only until the first publish, so VS Code keeps showing **Publish Branch** instead of attempting to sync against a not-yet-existing remote branch. The extension stores the chosen compare base in `branch.<name>.vscode-merge-base` so SCM diffs still use the expected base branch.
 
 ### 🔗 Smart Attach
@@ -190,7 +190,7 @@ To create a new task: click the **+** button in the TMUX panel header, enter a b
 
 ```
 Repository (root)
-├── main              → tmux session: "project-a1b2c3d4_main"
+├── master            → tmux session: "project-a1b2c3d4_master"
 ├── feature/login     → tmux session: "project-a1b2c3d4_feature-login"
 └── fix/bug-123       → tmux session: "project-a1b2c3d4_fix-bug-123"
 ```
