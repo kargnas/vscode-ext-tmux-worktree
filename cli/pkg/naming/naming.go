@@ -47,35 +47,6 @@ func BuildSessionName(namespace, slug string) string {
 	return SanitizeSessionName(namespace) + "_" + SanitizeSessionName(slug)
 }
 
-// ─── Legacy helpers (used by the existing TUI in cli/internal/ui) ─────────
-// These functions predate the path-hash namespace used by the extension and
-// remain here only to avoid breaking the bundled Bubble Tea TUI. Do NOT use
-// them for new code paths; prefer ComputeRepoNamespace + BuildSessionName.
-
-// GetRepoName returns the basename of the repository root directory.
-//
-// Deprecated: use ComputeRepoNamespace + the primary-worktree path instead.
-func GetRepoName(repoRoot string) string {
-	return filepath.Base(repoRoot)
-}
-
-// GetSlugFromSessionName extracts the slug from a tmux session name.
-// Format: {repoName}_{slug}
-//
-// Deprecated: the extension now uses {namespace}_{slug} where namespace
-// already contains a hash suffix. Use SlugFromSessionName(name, namespace).
-func GetSlugFromSessionName(sessionName, repoName string) string {
-	prefix := repoName + "_"
-	if !strings.HasPrefix(sessionName, prefix) {
-		return sessionName
-	}
-	slug := strings.TrimPrefix(sessionName, prefix)
-	if slug == "" {
-		return "main"
-	}
-	return slug
-}
-
 // SlugFromSessionName extracts the slug given the full namespace produced by
 // ComputeRepoNamespace. Returns "" when the session doesn't belong to that
 // namespace so callers can skip foreign sessions.
@@ -117,14 +88,6 @@ func GetSlugFromWorktree(worktreePath, repoName string, isMain bool) string {
 	}
 
 	return slug
-}
-
-// GetSessionName constructs the tmux session name.
-//
-// Deprecated: prefer BuildSessionName(ComputeRepoNamespace(identityRoot), slug)
-// so the CLI matches the extension's namespace+hash format.
-func GetSessionName(repoName, slug string) string {
-	return repoName + "_" + slug
 }
 
 // IsRoot determines if this item should be labeled as "(root)" in the UI.

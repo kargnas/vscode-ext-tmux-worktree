@@ -34,7 +34,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}
-        run: gh run download "$RUN_ID" --name vscode-tmux-worktree-vsix --dir dist
+        # --repo is required: this job runs without a checkout, and gh
+        # otherwise tries to infer the repo from a local git clone.
+        run: gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --name vscode-tmux-worktree-vsix --dir dist
 
       - name: Checkout for manual publish
         if: github.event_name == 'workflow_dispatch'

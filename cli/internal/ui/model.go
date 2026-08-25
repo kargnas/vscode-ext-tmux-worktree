@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 	"time"
@@ -321,12 +322,18 @@ func loadDataCmd() tea.Cmd {
 		var sessionItems []Item
 
 		for _, repoPath := range repos {
-			repoName := naming.GetRepoName(repoPath)
+			// ComputeRepoNamespace hashes the absolute path; resolve first so
+			// the TUI's session names match the extension's byte-for-byte.
+			if abs, err := filepath.Abs(repoPath); err == nil {
+				repoPath = abs
+			}
+			repoName := filepath.Base(repoPath)
+			namespace := naming.ComputeRepoNamespace(repoPath)
 			wts, _ := git.ListWorktrees(repoPath)
 
 			for _, wt := range wts {
 				slug := naming.GetSlugFromWorktree(wt.Path, repoName, wt.IsMain)
-				sessionName := naming.GetSessionName(repoName, slug)
+				sessionName := naming.BuildSessionName(namespace, slug)
 
 				status, _ := git.GetStatus(wt.Path)
 				isDirty := status != nil && status.IsDirty()
