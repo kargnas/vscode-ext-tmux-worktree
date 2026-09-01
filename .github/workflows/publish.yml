@@ -108,7 +108,7 @@ jobs:
           VSIX_PATH: vscode-tmux-worktree-${{ steps.version.outputs.version }}.vsix
         run: |
           for attempt in 1 2 3; do
-            if npx @vscode/vsce publish --packagePath "$VSIX_PATH" --skip-duplicate -p "$VSCE_PAT"; then
+            if npx @vscode/vsce publish --packagePath "$VSIX_PATH" --skip-duplicate; then
               exit 0
             fi
 
