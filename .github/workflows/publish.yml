@@ -103,7 +103,23 @@ jobs:
           if-no-files-found: error
 
       - name: Publish to VS Code Marketplace
-        run: npx @vscode/vsce publish --packagePath "vscode-tmux-worktree-${{ steps.version.outputs.version }}.vsix" -p ${{ secrets.VSCE_PAT }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSIX_PATH: vscode-tmux-worktree-${{ steps.version.outputs.version }}.vsix
+        run: |
+          for attempt in 1 2 3; do
+            if npx @vscode/vsce publish --packagePath "$VSIX_PATH" --skip-duplicate -p "$VSCE_PAT"; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              echo "VS Code Marketplace publish failed after $attempt attempts."
+              exit 1
+            fi
+
+            echo "Retrying VS Code Marketplace publish after a transient failure (attempt $((attempt + 1))/3)..."
+            sleep $((attempt * 30))
+          done
         continue-on-error: false
 
       - name: Create GitHub Release

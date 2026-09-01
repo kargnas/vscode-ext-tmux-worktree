@@ -59,6 +59,7 @@ This document serves as the primary rule file for AI Agents working on this proj
 - **No-Git Workspace Labeling**: If the workspace is not a git worktree, the tree must still show one primary item labeled `current project (no git)` mapped to the current workspace path.
 - **Package Hygiene**: Keep local orchestration/runtime state such as `.omx/` out of VSIX packages via `.vscodeignore`; git excludes alone do not affect packaging.
 - **Marketplace Publishing**: `publish.yml` owns version bump, VSIX packaging, VS Code Marketplace publishing, and GitHub releases. Open VSX publishing lives in `publish-open-vsx.yml` and consumes the uploaded VSIX artifact from the successful marketplace workflow so both registries receive the same package. The `workflow_run` job has no checkout, so `gh run download` must pass `--repo "$GITHUB_REPOSITORY"`; without it gh tries to infer the repo from a local clone and dies with "not a git repository".
+- **VSCE Publish Retries**: `@vscode/vsce publish` can fail with a Marketplace API request timeout and does not expose a built-in timeout/retry control. Keep the marketplace publish step wrapped in a bounded shell retry loop and pass `--skip-duplicate` so reruns succeed safely if a prior attempt partially published the same version.
 
 ## 3. Documentation & Development
 
