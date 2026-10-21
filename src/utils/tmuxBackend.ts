@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { exec } from './exec';
+import { exec, getEnhancedPath } from './exec';
 import { toCanonicalPath } from './path';
 import { shellQuote } from './shell';
 import { MultiplexerBackend, MultiplexerSession, SessionStatusInfo, TmuxWindow, TmuxPane } from './multiplexer';
@@ -291,6 +291,7 @@ export class TmuxBackend implements MultiplexerBackend {
       cwd: cwd,
       env: {
         'TERM': 'xterm-256color',
+        'PATH': getEnhancedPath(),
         // VS Code shell integration 환경변수가 tmux 내부 쉘에 상속되면,
         // 내부 쉘이 OSC 633 시퀀스를 보내 마우스 드래그가 안 되는 문제 발생.
         'TERM_PROGRAM': null,

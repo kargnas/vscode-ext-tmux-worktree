@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { exec, ExecOptions } from './exec';
+import { exec, ExecOptions, getEnhancedPath } from './exec';
 import { MultiplexerBackend, MultiplexerSession, SessionStatusInfo, TmuxWindow, TmuxPane } from './multiplexer';
 import { shellQuote } from './shell';
 import { getZellijSocketDir, ensureSocketDirExists } from './socketDir';
@@ -63,6 +63,7 @@ function getSanitizedZellijTerminalEnv(): Record<string, string | null> {
   const env: Record<string, string | null> = {
     ...ZELLIJ_BOOTSTRAP_ENV,
     ZELLIJ_SOCKET_DIR: ensureZellijSocketDir(),
+    PATH: getEnhancedPath(),
   };
   for (const key of getSanitizedZellijEnvKeys()) {
     env[key] = null;
