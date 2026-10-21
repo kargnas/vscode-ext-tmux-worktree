@@ -1,5 +1,7 @@
 import { exec as execCallback } from 'child_process';
 import { promisify } from 'util';
+import * as os from 'os';
+import * as path from 'path';
 
 const execPromise = promisify(execCallback);
 
@@ -18,6 +20,8 @@ export function getEnhancedPath(): string {
     '/usr/local/bin',         // Intel Mac Homebrew / 일반적인 위치
     '/opt/homebrew/sbin',
     '/usr/local/sbin',
+    // `cargo install zellij` 기본 설치 위치. Homebrew보다 뒤에 둬서 둘 다 있으면 셸 PATH 순서처럼 Homebrew가 우선함
+    path.join(os.homedir(), '.cargo', 'bin'),
   ];
   
   // 이미 있는 경로는 추가하지 않음
