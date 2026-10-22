@@ -46,7 +46,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24.22.1'
 
       - name: Build VSIX for manual publish
         if: github.event_name == 'workflow_dispatch'

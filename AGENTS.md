@@ -67,7 +67,7 @@ This document serves as the primary rule file for AI Agents working on this proj
 - **CLI**: Go, Bubble Tea, Lipgloss.
 
 ### Local Development
-- **Prerequisites**: Node.js, Go, `tmux`, `git`.
+- **Prerequisites**: Node.js 24.22.1 (see `.nvmrc`; Node 20 is EOL), Go, `tmux`, `git`.
 - **Setup**:
   ```bash
   npm install
