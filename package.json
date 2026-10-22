@@ -4,7 +4,8 @@
   "description": "Manage tmux sessions with git worktrees",
   "version": "1.2.29",
   "engines": {
-    "vscode": "^1.85.0"
+    "vscode": "^1.85.0",
+    "node": ">=24.22.1"
   },
   "publisher": "kargnas",
   "license": "MIT",
